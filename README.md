@@ -1,65 +1,71 @@
-Job Matching & Assessment Platform
-A comprehensive web application for job matching, candidate assessment, skills management, activity logging, and automated report generation. Built using Flask, SQLAlchemy, and MySQL, this platform offers distinct portals for candidates, employers, and admins, featuring intelligent job recommendations, skill gap analysis, robust exam systems, and advanced administrative analytics.
+Job Matching & Recruitment System
+Overview
+This is a web-based job matching and recruitment system built with Flask and MySQL.
+It allows:
 
-Features
-Candidate Portal
+Candidates to register, manage profiles, apply for jobs, and take MCQ exams.
 
-Profile creation, resume upload, skill tracking
+Employers to post jobs, manage applications, and create exams.
 
-Smart job recommendations based on skills & experience
+Admins to monitor the platform, manage users, and generate reports.
+It includes smart job recommendations, skill gap analysis, messaging, notifications, and activity logs.
 
-Application tracking with detailed status history
+Key Features
+Candidate
+Register and create detailed profiles with skills and CV upload.
 
-Skill gap analysis and targeted career recommendations
+Search and apply for jobs.
 
-Online MCQ exams with real-time scoring
+Personalized job recommendations.
 
-Employer Portal
+Skill gap analysis for recommended jobs.
 
-Job posting with detailed requirements and skill mapping
+MCQ exam participation with result tracking.
 
-Application management, status updates, and messaging
+Application tracking and status notifications.
 
-MCQ exam creation for automated candidate screening
+Employer
+Company profile management.
 
-Real-time applicant analytics
+Job posting with skill requirements.
 
-Admin Dashboard
+Manage applications with status updates.
 
-User, skill, job, and application management
+Create MCQ exams and manage questions.
 
-Bulk skill import via CSV
+Analytics on applications and job performance.
 
-Auditable activity logs
+Messaging with candidates.
 
-System-wide reporting and export (CSV)
+Admin
+Dashboard for overall system metrics.
 
-System notifications and user trend analysis
+Manage users, skills, and activity logs.
 
-Other Utilities
+Bulk skill import via CSV.
 
-In-app messaging system
+Export reports (Users, Jobs, Applications, Skills).
 
-Notification center
+Advanced reporting (user growth, job statistics, application trends, skill demand).
 
-Secure file uploads
+Technology Stack
+Backend: Flask, Flask-SQLAlchemy
 
-Audit trail logging for all critical operations
+Database: MySQL (via pymysql)
 
-Tech Stack
-Backend: Python (Flask), SQLAlchemy
+Authentication: Werkzeug security hashing
 
-Frontend: Flask templates (Jinja2)
+File Upload: PDF/DOC/DOCX CV upload
 
-Database: MySQL (with PyMySQL connector)
+Email Service: Flask-Mail (Gmail SMTP)
 
-Email: Flask-Mail (SMTP support)
+Frontend: Jinja2 templates (HTML/CSS/Bootstrap)
 
-Other: CSV, JSON, Secure file handling, Activity Logging
+Other: JSON, CSV export, Notifications system
 
+Installation & Setup
 Prerequisites
 Python 3.8+
 
-MySQL Server
+MySQL 5.7+ or MariaDB
 
-Virtual environment (recommended)
