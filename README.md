@@ -1,71 +1,46 @@
-Job Matching & Recruitment System
-Overview
-This is a web-based job matching and recruitment system built with Flask and MySQL.
-It allows:
+# Job Matching System - University Project
 
-Candidates to register, manage profiles, apply for jobs, and take MCQ exams.
+## Overview
+This is a **Flask-based Job Matching System** developed as part of a university database management project.  
+It is designed to efficiently connect job seekers with employers by providing features like profile management, job posting, skill-based search, and automatic matching based on user preferences and job requirements.
 
-Employers to post jobs, manage applications, and create exams.
+The system leverages:
+- **Flask** for backend web framework
+- **MySQL** for database management
+- **Flask-Login** for authentication & user roles
+- **SQLAlchemy ORM** for database interactions
 
-Admins to monitor the platform, manage users, and generate reports.
-It includes smart job recommendations, skill gap analysis, messaging, notifications, and activity logs.
+---
 
-Key Features
-Candidate
-Register and create detailed profiles with skills and CV upload.
+## Features
+- **Role-based Access**  
+  - **Admin**: Manage users, jobs, and oversee system activity  
+  - **Employer**: Post jobs, view applications, search for candidates  
+  - **Job Seeker**: Create profiles, upload resumes, browse and apply for jobs  
 
-Search and apply for jobs.
+- **Job Posting & Management**  
+  - Employers can create, edit, and delete job postings.  
+  - Job seekers can search and apply for jobs easily.
 
-Personalized job recommendations.
+- **Profile Management**  
+  - Job seekers can maintain skill sets and experience information.  
+  - Employers can maintain company profiles.
 
-Skill gap analysis for recommended jobs.
+- **Matching Algorithm**  
+  - Automatically suggests jobs to seekers based on skills and preferences.  
+  - Suggests best-fit candidates for employers based on job criteria.
 
-MCQ exam participation with result tracking.
+- **Search & Filters**  
+  - Advanced filtering options by location, experience, skill, and salary.
 
-Application tracking and status notifications.
+---
 
-Employer
-Company profile management.
+## Tech Stack
+- **Backend**: Python (Flask)  
+- **Database**: MySQL  
+- **ORM**: SQLAlchemy  
+- **Authentication**: Flask-Login  
+- **Frontend**: HTML, CSS, Bootstrap  
 
-Job posting with skill requirements.
-
-Manage applications with status updates.
-
-Create MCQ exams and manage questions.
-
-Analytics on applications and job performance.
-
-Messaging with candidates.
-
-Admin
-Dashboard for overall system metrics.
-
-Manage users, skills, and activity logs.
-
-Bulk skill import via CSV.
-
-Export reports (Users, Jobs, Applications, Skills).
-
-Advanced reporting (user growth, job statistics, application trends, skill demand).
-
-Technology Stack
-Backend: Flask, Flask-SQLAlchemy
-
-Database: MySQL (via pymysql)
-
-Authentication: Werkzeug security hashing
-
-File Upload: PDF/DOC/DOCX CV upload
-
-Email Service: Flask-Mail (Gmail SMTP)
-
-Frontend: Jinja2 templates (HTML/CSS/Bootstrap)
-
-Other: JSON, CSV export, Notifications system
-
-Installation & Setup
-Prerequisites
-Python 3.8+
-
-MySQL 5.7+ or MariaDB
+---
 
