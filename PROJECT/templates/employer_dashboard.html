@@ -1,0 +1,387 @@
+{% extends "base.html" %}
+
+{% block title %}Employer Dashboard - JobMatch Pro{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 sidebar">
+            <div class="p-3">
+                <h5 class="text-center mb-4">
+                    <i class="fas fa-building me-2"></i>{{ company.company_name[:15] }}{% if company.company_name|length > 15 %}...{% endif %}
+                </h5>
+                <nav class="nav flex-column">
+                    <a class="nav-link active" href="{{ url_for('employer_dashboard') }}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="{{ url_for('employer_jobs') }}">
+                        <i class="fas fa-briefcase me-2"></i>My Jobs
+                    </a>
+                    <a class="nav-link" href="{{ url_for('create_job') }}">
+                        <i class="fas fa-plus me-2"></i>Post New Job
+                    </a>
+                    <a class="nav-link" href="{{ url_for('employer_applications') }}">
+                        <i class="fas fa-file-alt me-2"></i>Applications
+                    </a>
+                    <a class="nav-link" href="{{ url_for('messages') }}">
+                        <i class="fas fa-envelope me-2"></i>Messages
+                    </a>
+                </nav>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 main-content">
+            <!-- Welcome Section -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h2 class="mb-3">
+                                <i class="fas fa-sun me-2 text-warning"></i>
+                                Welcome back, {{ user.first_name }}!
+                            </h2>
+                            <p class="text-muted mb-0">Here's your hiring overview and latest updates for {{ company.company_name }}.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3>{{ job_postings|length }}</h3>
+                                <p class="mb-0">Active Jobs</p>
+                            </div>
+                            <i class="fas fa-briefcase fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card" style="background: linear-gradient(135deg, #27ae60, #58d68d);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3>{{ analytics.total_applications or 0 }}</h3>
+                                <p class="mb-0">Applications This Month</p>
+                            </div>
+                            <i class="fas fa-file-alt fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card" style="background: linear-gradient(135deg, #f39c12, #f7dc6f);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3>{{ applications|length }}</h3>
+                                <p class="mb-0">Recent Applications</p>
+                            </div>
+                            <i class="fas fa-users fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card" style="background: linear-gradient(135deg, #e74c3c, #ec7063);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3>{{ notifications|length }}</h3>
+                                <p class="mb-0">New Notifications</p>
+                            </div>
+                            <i class="fas fa-bell fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <!-- Recent Applications -->
+                <div class="col-lg-8">
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-file-alt me-2"></i>Recent Applications
+                            </h5>
+                            <a href="{{ url_for('employer_applications') }}" class="btn btn-sm btn-outline-primary">
+                                View All
+                            </a>
+                        </div>
+                        <div class="card-body">
+                            {% if applications %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Candidate</th>
+                                                <th>Job Position</th>
+                                                <th>Status</th>
+                                                <th>Applied Date</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for application, job, candidate, user in applications %}
+                                            <tr>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="avatar-circle me-2">
+                                                            {{ user.first_name[0] }}{{ user.last_name[0] }}
+                                                        </div>
+                                                        <div>
+                                                            <strong>{{ user.first_name }} {{ user.last_name }}</strong>
+                                                            <br><small class="text-muted">{{ candidate.current_position or 'Position not specified' }}</small>
+                                                        </div
+                                            <div class="avatar-circle me-2">
+                                                {{ user.first_name[0] }}{{ user.last_name[0] }}
+                                            </div>
+                                            <div>
+                                                <strong>{{ user.first_name }} {{ user.last_name }}</strong>
+                                                <br><small class="text-muted">{{ candidate.current_position or 'Position not specified' }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <strong>{{ job.title }}</strong>
+                                        <br><small class="text-muted">{{ job.location }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if application.application_status == 'hired' else 'primary' if application.application_status == 'shortlisted' else 'warning' if application.application_status == 'under_review' else 'info' if application.application_status == 'interview_scheduled' else 'danger' if application.application_status == 'rejected' else 'secondary' }}">
+                                            {{ application.application_status.replace('_', ' ').title() }}
+                                        </span>
+                                    </td>
+                                    <td>{{ application.applied_at.strftime('%b %d, %Y') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('employer_view_application', application_id=application.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Applications Yet</h5>
+                        <p class="text-muted">Start posting jobs to receive applications!</p>
+                        <a href="{{ url_for('create_job') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Post Your First Job
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Active Job Postings -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-briefcase me-2"></i>Active Job Postings
+                </h5>
+                <a href="{{ url_for('employer_jobs') }}" class="btn btn-sm btn-outline-primary">
+                    Manage All
+                </a>
+            </div>
+            <div class="card-body">
+                {% if job_postings %}
+                    {% for job, app_count in job_postings[:5] %}
+                    <div class="border-bottom pb-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">{{ job.title }}</h6>
+                                <div class="d-flex align-items-center mb-2">
+                                    <small class="text-muted me-3">
+                                        <i class="fas fa-map-marker-alt me-1"></i>{{ job.location or 'Remote' }}
+                                    </small>
+                                    <small class="text-muted me-3">
+                                        <i class="fas fa-clock me-1"></i>{{ job.job_type }}
+                                    </small>
+                                    <small class="text-muted">
+                                        <i class="fas fa-calendar-alt me-1"></i>{{ job.created_at.strftime('%b %d') }}
+                                    </small>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-info me-2">{{ app_count }} Applications</span>
+                                    {% if job.application_deadline %}
+                                    <small class="text-warning">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>
+                                        Deadline: {{ job.application_deadline.strftime('%b %d') }}
+                                    </small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <a href="{{ url_for('job_details', job_id=job.id) }}" class="btn btn-sm btn-outline-primary mb-1">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <br>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" 
+                                           id="job_{{ job.id }}" {{ 'checked' if job.is_active }}
+                                           onchange="toggleJobStatus({{ job.id }})">
+                                    <label class="form-check-label" for="job_{{ job.id }}">
+                                        <small>Active</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-briefcase fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Job Postings</h5>
+                        <p class="text-muted">Create your first job posting to start hiring!</p>
+                        <a href="{{ url_for('create_job') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Post a Job
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar Content -->
+    <div class="col-lg-4">
+        <!-- Company Performance -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>Hiring Performance
+                </h6>
+            </div>
+            <div class="card-body">
+                <!-- Application Status Breakdown -->
+                {% if analytics.status_counts %}
+                <div class="mb-3">
+                    <h6 class="small mb-2">Application Status Distribution:</h6>
+                    {% for status, count in analytics.status_counts.items() %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small">{{ status.replace('_', ' ').title() }}</span>
+                        <span class="badge bg-{{ 'success' if status == 'hired' else 'primary' if status == 'shortlisted' else 'warning' if status == 'under_review' else 'secondary' }}">
+                            {{ count }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Top Performing Jobs -->
+                {% if analytics.top_jobs %}
+                <div class="mb-3">
+                    <h6 class="small mb-2">Top Performing Jobs:</h6>
+                    {% for job_title, app_count in analytics.top_jobs[:3] %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small">{{ job_title[:20] }}{% if job_title|length > 20 %}...{% endif %}</span>
+                        <span class="text-primary fw-bold">{{ app_count }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <a href="{{ url_for('employer_applications') }}" class="btn btn-outline-primary btn-sm w-100">
+                    <i class="fas fa-chart-line me-1"></i>View Detailed Analytics
+                </a>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>Quick Actions
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('create_job') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Post New Job
+                    </a>
+                    <a href="{{ url_for('employer_applications') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-users me-2"></i>Review Applications
+                    </a>
+                    <a href="{{ url_for('messages') }}" class="btn btn-outline-info">
+                        <i class="fas fa-envelope me-2"></i>Messages
+                    </a>
+                    <button class="btn btn-outline-secondary" onclick="exportData()">
+                        <i class="fas fa-download me-2"></i>Export Data
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Notifications -->
+        {% if notifications %}
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    <i class="fas fa-bell me-2"></i>Recent Notifications
+                </h6>
+                <a href="{{ url_for('notifications') }}" class="btn btn-sm btn-outline-primary">
+                    View All
+                </a>
+            </div>
+            <div class="card-body">
+                {% for notification in notifications %}
+                <div class="d-flex align-items-start mb-3">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-{{ 'user-plus' if notification.notification_type == 'application' else 'envelope' if notification.notification_type == 'message' else 'info-circle' }} text-primary"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-2">
+                        <h6 class="mb-1 small">{{ notification.title }}</h6>
+                        <p class="small text-muted mb-1">{{ notification.message }}</p>
+                        <small class="text-muted">{{ notification.created_at.strftime('%b %d, %H:%M') }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+</div>
+</div>
+</div>
+
+<style>
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.form-check-input:checked {
+    background-color: var(--success-color);
+    border-color: var(--success-color);
+}
+</style>
+
+<script>
+function toggleJobStatus(jobId) {
+    // This would toggle job active/inactive status
+    console.log(`Toggle job ${jobId} status`);
+    // Implement AJAX call to update job status
+}
+
+function exportData() {
+    // This would export company data
+    alert('Export functionality coming soon!');
+}
+
+// Auto-refresh notifications every 5 minutes
+setInterval(() => {
+    // Implement notification refresh
+    console.log('Refreshing notifications...');
+}, 300000);
+</script>
+{% endblock %}

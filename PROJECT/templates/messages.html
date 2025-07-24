@@ -1,0 +1,633 @@
+{% extends "base.html" %}
+
+{% block title %}Messages - JobMatch Pro{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Conversations Sidebar -->
+        <div class="col-md-4 col-lg-3">
+            <div class="card messages-sidebar">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-envelope me-2"></i>Messages
+                        </h5>
+                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newMessageModal">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <!-- Search Conversations -->
+                    <div class="p-3 border-bottom">
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Search conversations..." id="searchConversations">
+                            <button class="btn btn-outline-secondary" type="button">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Conversations List -->
+                    <div class="conversations-list">
+                        {% if conversations %}
+                            {% for conversation in conversations %}
+                            <div class="conversation-item {{ 'active' if loop.first else '' }}" 
+                                 data-thread-id="{{ conversation.thread_id }}" 
+                                 onclick="loadConversation('{{ conversation.thread_id }}')">
+                                <div class="d-flex align-items-center p-3">
+                                    <div class="avatar-circle me-3">
+                                        {{ conversation.other_user.first_name[0] }}{{ conversation.other_user.last_name[0] }}
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <h6 class="mb-1">{{ conversation.other_user.first_name }} {{ conversation.other_user.last_name }}</h6>
+                                            <small class="text-muted">{{ conversation.last_time.strftime('%H:%M') }}</small>
+                                        </div>
+                                        <p class="mb-1 text-truncate message-preview">
+                                            {{ conversation.latest_message.message_text[:50] }}{% if conversation.latest_message.message_text|length > 50 %}...{% endif %}
+                                        </p>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">
+                                                <span class="badge bg-{{ 'primary' if conversation.other_user.user_type == 'candidate' else 'warning' if conversation.other_user.user_type == 'employer' else 'danger' }}">
+                                                    {{ conversation.other_user.user_type.title() }}
+                                                </span>
+                                            </small>
+                                            {% if conversation.unread_count > 0 %}
+                                            <span class="badge bg-danger rounded-pill">{{ conversation.unread_count }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center p-4">
+                                <i class="fas fa-envelope fa-3x text-muted mb-3"></i>
+                                <h6 class="text-muted">No Conversations</h6>
+                                <p class="text-muted small">Start a conversation by sending a message</p>
+                                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newMessageModal">
+                                    <i class="fas fa-plus me-1"></i>New Message
+                                </button>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="col-md-8 col-lg-9">
+            <div class="card chat-container">
+                {% if conversations %}
+                <div class="card-header chat-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-circle me-3">
+                                {{ conversations[0].other_user.first_name[0] }}{{ conversations[0].other_user.last_name[0] }}
+                            </div>
+                            <div>
+                                <h6 class="mb-0" id="chatUserName">{{ conversations[0].other_user.first_name }} {{ conversations[0].other_user.last_name }}</h6>
+                                <small class="text-muted" id="chatUserType">{{ conversations[0].other_user.user_type.title() }}</small>
+                            </div>
+                        </div>
+                        <div class="chat-actions">
+                            <button class="btn btn-sm btn-outline-secondary me-2" onclick="searchInChat()">
+                                <i class="fas fa-search"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary me-2" onclick="viewUserProfile()">
+                                <i class="fas fa-user"></i>
+                            </button>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" onclick="archiveConversation()">
+                                        <i class="fas fa-archive me-2"></i>Archive
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="blockUser()">
+                                        <i class="fas fa-ban me-2"></i>Block User
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="reportUser()">
+                                        <i class="fas fa-flag me-2"></i>Report
+                                    </a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body chat-messages" id="chatMessages">
+                    <!-- Messages will be loaded here -->
+                    <div class="text-center p-4">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading messages...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-footer chat-input">
+                    <form id="messageForm" onsubmit="sendMessage(event)">
+                        <div class="input-group">
+                            <button class="btn btn-outline-secondary" type="button" onclick="attachFile()">
+                                <i class="fas fa-paperclip"></i>
+                            </button>
+                            <input type="text" class="form-control" id="messageInput" 
+                                   placeholder="Type your message..." autocomplete="off" required>
+                            <button class="btn btn-primary" type="submit">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </form>
+                    <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                        <small class="text-muted">
+                            <i class="fas fa-circle typing-dot"></i>
+                            <i class="fas fa-circle typing-dot"></i>
+                            <i class="fas fa-circle typing-dot"></i>
+                            <span id="typingUser">Someone</span> is typing...
+                        </small>
+                    </div>
+                </div>
+                {% else %}
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-comments fa-4x text-muted mb-4"></i>
+                    <h4 class="text-muted">Welcome to Messages</h4>
+                    <p class="text-muted mb-4">Connect with employers and candidates through our messaging system</p>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newMessageModal">
+                        <i class="fas fa-plus me-2"></i>Start Your First Conversation
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Message Modal -->
+<div class="modal fade" id="newMessageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">New Message</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="newMessageForm" onsubmit="sendNewMessage(event)">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="recipientSearch" class="form-label">To:</label>
+                        <input type="text" class="form-control" id="recipientSearch" 
+                               placeholder="Search for users..." autocomplete="off">
+                        <div id="userSearchResults" class="mt-2"></div>
+                        <input type="hidden" id="selectedUserId" name="receiver_id">
+                    </div>
+                    <div class="mb-3">
+                        <label for="messageSubject" class="form-label">Subject (Optional):</label>
+                        <input type="text" class="form-control" id="messageSubject" name="subject" 
+                               placeholder="Message subject...">
+                    </div>
+                    <div class="mb-3">
+                        <label for="newMessageText" class="form-label">Message:</label>
+                        <textarea class="form-control" id="newMessageText" name="message_text" 
+                                  rows="4" placeholder="Type your message..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane me-1"></i>Send Message
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.messages-sidebar {
+    height: calc(100vh - 120px);
+    overflow: hidden;
+}
+
+.conversations-list {
+    height: calc(100vh - 240px);
+    overflow-y: auto;
+}
+
+.conversation-item {
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.2s;
+}
+
+.conversation-item:hover {
+    background-color: #f8f9fa;
+}
+
+.conversation-item.active {
+    background-color: #e3f2fd;
+    border-left: 4px solid #2196f3;
+}
+
+.chat-container {
+    height: calc(100vh - 120px);
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-header {
+    border-bottom: 2px solid #eee;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    max-height: calc(100vh - 280px);
+    padding: 20px;
+}
+
+.chat-input {
+    border-top: 2px solid #eee;
+    background-color: #f8f9fa;
+}
+
+.message-bubble {
+    max-width: 70%;
+    margin-bottom: 15px;
+    padding: 12px 16px;
+    border-radius: 18px;
+    word-wrap: break-word;
+}
+
+.message-sent {
+    background-color: #007bff;
+    color: white;
+    margin-left: auto;
+    border-bottom-right-radius: 4px;
+}
+
+.message-received {
+    background-color: #e9ecef;
+    color: #333;
+    margin-right: auto;
+    border-bottom-left-radius: 4px;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    margin-top: 4px;
+}
+
+.message-preview {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.typing-indicator {
+    padding: 8px 16px;
+}
+
+.typing-dot {
+    font-size: 6px;
+    animation: typing 1.4s infinite ease-in-out;
+}
+
+.typing-dot:nth-child(1) { animation-delay: -0.32s; }
+.typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes typing {
+    0%, 80%, 100% { opacity: 0.3; }
+    40% { opacity: 1; }
+}
+
+.user-search-item {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.user-search-item:hover {
+    background-color: #f8f9fa;
+}
+
+.user-search-item.selected {
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+}
+
+@media (max-width: 768px) {
+    .messages-sidebar {
+        height: auto;
+        margin-bottom: 20px;
+    }
+    
+    .chat-container {
+        height: 500px;
+    }
+    
+    .chat-messages {
+        max-height: 350px;
+    }
+}
+</style>
+
+<script>
+let currentThreadId = null;
+let typingTimer = null;
+let isTyping = false;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Load first conversation if available
+    {% if conversations %}
+    loadConversation('{{ conversations[0].thread_id }}');
+    {% endif %}
+    
+    // Setup user search
+    setupUserSearch();
+    
+    // Setup typing indicators
+    setupTypingIndicators();
+    
+    // Auto-refresh messages every 30 seconds
+    setInterval(refreshMessages, 30000);
+});
+
+function loadConversation(threadId) {
+    currentThreadId = threadId;
+    
+    // Update active conversation
+    document.querySelectorAll('.conversation-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    document.querySelector(`[data-thread-id="${threadId}"]`).classList.add('active');
+    
+    // Load messages
+    fetch(`/messages/${threadId}`)
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('chatMessages').innerHTML = html;
+            scrollToBottom();
+            markMessagesAsRead(threadId);
+        })
+        .catch(error => {
+            console.error('Error loading conversation:', error);
+            document.getElementById('chatMessages').innerHTML = `
+                <div class="text-center p-4">
+                    <i class="fas fa-exclamation-triangle text-warning fa-2x mb-2"></i>
+                    <p class="text-muted">Error loading messages. Please try again.</p>
+                </div>
+            `;
+        });
+}
+
+function sendMessage(event) {
+    event.preventDefault();
+    
+    const messageInput = document.getElementById('messageInput');
+    const messageText = messageInput.value.trim();
+    
+    if (!messageText || !currentThreadId) return;
+    
+    const formData = new FormData();
+    formData.append('receiver_id', getCurrentReceiverId());
+    formData.append('message_text', messageText);
+    formData.append('thread_id', currentThreadId);
+    
+    fetch('/send_message', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            messageInput.value = '';
+            loadConversation(currentThreadId);
+            stopTyping();
+        } else {
+            throw new Error('Failed to send message');
+        }
+    })
+    .catch(error => {
+        console.error('Error sending message:', error);
+        alert('Failed to send message. Please try again.');
+    });
+}
+
+function sendNewMessage(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(document.getElementById('newMessageForm'));
+    
+    fetch('/send_message', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('newMessageModal'));
+            modal.hide();
+            document.getElementById('newMessageForm').reset();
+            document.getElementById('userSearchResults').innerHTML = '';
+            location.reload(); // Reload to show new conversation
+        } else {
+            throw new Error('Failed to send message');
+        }
+    })
+    .catch(error => {
+        console.error('Error sending message:', error);
+        alert('Failed to send message. Please try again.');
+    });
+}
+
+function setupUserSearch() {
+    const searchInput = document.getElementById('recipientSearch');
+    let searchTimer = null;
+    
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimer);
+        const query = this.value.trim();
+        
+        if (query.length < 2) {
+            document.getElementById('userSearchResults').innerHTML = '';
+            return;
+        }
+        
+        searchTimer = setTimeout(() => {
+            searchUsers(query);
+        }, 300);
+    });
+}
+
+function searchUsers(query) {
+    fetch(`/api/search_users?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(users => {
+            const resultsDiv = document.getElementById('userSearchResults');
+            
+            if (users.length === 0) {
+                resultsDiv.innerHTML = '<p class="text-muted small">No users found</p>';
+                return;
+            }
+            
+            resultsDiv.innerHTML = users.map(user => `
+                <div class="user-search-item" onclick="selectUser(${user.id}, '${user.first_name} ${user.last_name}', '${user.user_type}')">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-circle me-2" style="width: 30px; height: 30px; font-size: 0.8rem;">
+                            ${user.first_name[0]}${user.last_name[0]}
+                        </div>
+                        <div>
+                            <strong>${user.first_name} ${user.last_name}</strong>
+                            <br><small class="text-muted">${user.user_type} • ${user.email}</small>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        })
+        .catch(error => {
+            console.error('Error searching users:', error);
+        });
+}
+
+function selectUser(userId, userName, userType) {
+    document.getElementById('selectedUserId').value = userId;
+    document.getElementById('recipientSearch').value = userName;
+    document.getElementById('userSearchResults').innerHTML = '';
+    
+    // Update selected state
+    document.querySelectorAll('.user-search-item').forEach(item => {
+        item.classList.remove('selected');
+    });
+    event.target.closest('.user-search-item').classList.add('selected');
+}
+
+function setupTypingIndicators() {
+    const messageInput = document.getElementById('messageInput');
+    
+    if (messageInput) {
+        messageInput.addEventListener('input', function() {
+            if (!isTyping) {
+                startTyping();
+            }
+            
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(stopTyping, 2000);
+        });
+    }
+}
+
+function startTyping() {
+    isTyping = true;
+    // Send typing indicator to server
+    if (currentThreadId) {
+        fetch('/api/typing', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ thread_id: currentThreadId, typing: true })
+        });
+    }
+}
+
+function stopTyping() {
+    isTyping = false;
+    // Send stop typing indicator to server
+    if (currentThreadId) {
+        fetch('/api/typing', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ thread_id: currentThreadId, typing: false })
+        });
+    }
+}
+
+function refreshMessages() {
+    if (currentThreadId) {
+        loadConversation(currentThreadId);
+    }
+}
+
+function markMessagesAsRead(threadId) {
+    fetch(`/api/mark_read/${threadId}`, { method: 'POST' });
+}
+
+function scrollToBottom() {
+    const chatMessages = document.getElementById('chatMessages');
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function getCurrentReceiverId() {
+    // Extract receiver ID from current conversation
+    // This would need to be implemented based on your data structure
+    return document.querySelector('.conversation-item.active')?.dataset.receiverId || '';
+}
+
+function attachFile() {
+    alert('File attachment feature coming soon!');
+}
+
+function searchInChat() {
+    alert('Chat search feature coming soon!');
+}
+
+function viewUserProfile() {
+    alert('User profile view feature coming soon!');
+}
+
+function archiveConversation() {
+    if (confirm('Archive this conversation?')) {
+        alert('Archive feature coming soon!');
+    }
+}
+
+function blockUser() {
+    if (confirm('Block this user? They will not be able to send you messages.')) {
+        alert('Block user feature coming soon!');
+    }
+}
+
+function reportUser() {
+    alert('Report user feature coming soon!');
+}
+
+// Search conversations
+document.getElementById('searchConversations').addEventListener('input', function() {
+    const query = this.value.toLowerCase();
+    const conversations = document.querySelectorAll('.conversation-item');
+    
+    conversations.forEach(conv => {
+        const userName = conv.querySelector('h6').textContent.toLowerCase();
+        const messagePreview = conv.querySelector('.message-preview').textContent.toLowerCase();
+        
+        if (userName.includes(query) || messagePreview.includes(query)) {
+            conv.style.display = 'block';
+        } else {
+            conv.style.display = 'none';
+        }
+    });
+});
+
+// Handle Enter key in message input
+document.getElementById('messageInput')?.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        document.getElementById('messageForm').dispatchEvent(new Event('submit'));
+    }
+});
+</script>
+{% endblock %}

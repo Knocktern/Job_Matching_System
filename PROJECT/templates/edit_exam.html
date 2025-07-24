@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Exam - {{ exam.exam_title }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{{ exam.exam_title }}</h2>
+        <div>
+            {% if questions|length > 0 %}
+            <form method="POST" action="{{ url_for('finalize_exam', exam_id=exam.id) }}" style="display: inline;">
+                <button type="submit" class="btn btn-success me-2" onclick="return confirm('Are you sure you want to finalize this exam? You won\'t be able to edit questions after this.')">
+                    <i class="fas fa-check"></i> Finalize Exam
+                </button>
+            </form>
+            {% endif %}
+            <a href="{{ url_for('employer_exams') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Exams
+            </a>
+        </div>
+    </div>
+
+    <!-- Exam Info -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Job Position: <span class="text-primary">{{ job.title }}</span></h6>
+                    <p>{{ exam.description }}</p>
+                </div>
+                <div class="col-md-6">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <strong>{{ exam.total_questions }}</strong><br>
+                            <small class="text-muted">Questions</small>
+                        </div>
+                        <div class="col-4">
+                            <strong>{{ exam.duration_minutes }} min</strong><br>
+                            <small class="text-muted">Duration</small>
+                        </div>
+                        <div class="col-4">
+                            <strong>{{ exam.passing_score }}%</strong><br>
+                            <small class="text-muted">Pass Score</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Question Form -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5><i class="fas fa-plus"></i> Add New Question</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('add_question', exam_id=exam.id) }}">
+                <div class="mb-3">
+                    <label class="form-label">Question Text *</label>
+                    <textarea class="form-control" name="question_text" rows="3" required></textarea>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Option A *</label>
+                        <input type="text" class="form-control" name="option_a" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Option B *</label>
+                        <input type="text" class="form-control" name="option_b" required>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Option C *</label>
+                        <input type="text" class="form-control" name="option_c" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Option D *</label>
+                        <input type="text" class="form-control" name="option_d" required>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Correct Answer *</label>
+                        <select class="form-select" name="correct_answer" required>
+                            <option value="">Select correct answer...</option>
+                            <option value="A">Option A</option>
+                            <option value="B">Option B</option>
+                            <option value="C">Option C</option>
+                            <option value="D">Option D</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Points</label>
+                        <input type="number" class="form-control" name="points" value="1" min="1">
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Add Question</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Existing Questions -->
+    <div class="card">
+        <div class="card-header">
+            <h5><i class="fas fa-list"></i> Questions ({{ questions|length }})</h5>
+        </div>
+        <div class="card-body">
+            {% if questions %}
+            {% for question in questions %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <h6>Question {{ loop.index }}</h6>
+                        <div>
+                            <span class="badge bg-info">{{ question.points }} point(s)</span>
+                            <form method="POST" action="{{ url_for('delete_question', exam_id=exam.id, question_id=question.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this question?')">
+                                <button type="submit" class="btn btn-sm btn-outline-danger ms-2">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <p>{{ question.question_text }}</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" disabled {% if question.correct_answer == 'A' %}checked{% endif %}>
+                                <label class="form-check-label {% if question.correct_answer == 'A' %}text-success fw-bold{% endif %}">
+                                    A. {{ question.option_a }}
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" disabled {% if question.correct_answer == 'B' %}checked{% endif %}>
+                                <label class="form-check-label {% if question.correct_answer == 'B' %}text-success fw-bold{% endif %}">
+                                    B. {{ question.option_b }}
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" disabled {% if question.correct_answer == 'C' %}checked{% endif %}>
+                                <label class="form-check-label {% if question.correct_answer == 'C' %}text-success fw-bold{% endif %}">
+                                    C. {{ question.option_c }}
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" disabled {% if question.correct_answer == 'D' %}checked{% endif %}>
+                                <label class="form-check-label {% if question.correct_answer == 'D' %}text-success fw-bold{% endif %}">
+                                    D. {{ question.option_d }}
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-question-circle fa-3x text-muted mb-3"></i>
+                <h5>No Questions Added</h5>
+                <p class="text-muted">Add questions to make this exam available to candidates.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

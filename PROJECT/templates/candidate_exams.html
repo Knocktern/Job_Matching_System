@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Skill Tests & Assessments - JobMatch Pro{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Skill Tests & Assessments</h2>
+        <a href="{{ url_for('candidate_dashboard') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Available Tests -->
+    <div class="row">
+        <div class="col-12">
+            {% if exams %}
+            <div class="row g-4">
+                {% for exam, job, company in exams %}
+                <div class="col-lg-6">
+                    <div class="card h-100">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">{{ exam.exam_title }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <h6 class="text-primary mb-2">{{ job.title }}</h6>
+                            <p class="text-muted mb-2">
+                                <i class="fas fa-building"></i> {{ company.company_name }}
+                            </p>
+                            <p class="mb-3">{{ exam.description or 'Assessment for this position' }}</p>
+                            
+                            <div class="row text-center mb-3">
+                                <div class="col-4">
+                                    <strong>{{ exam.total_questions }}</strong><br>
+                                    <small class="text-muted">Questions</small>
+                                </div>
+                                <div class="col-4">
+                                    <strong>{{ exam.duration_minutes }} min</strong><br>
+                                    <small class="text-muted">Duration</small>
+                                </div>
+                                <div class="col-4">
+                                    <strong>{{ exam.passing_score }}%</strong><br>
+                                    <small class="text-muted">Pass Score</small>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-success">Available</span>
+                                <a href="{{ url_for('start_exam', exam_id=exam.id) }}" class="btn btn-primary">
+                                    <i class="fas fa-play"></i> Start Test
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <!-- No Tests Available -->
+            <div class="text-center py-5">
+                <div class="mb-4">
+                    <i class="fas fa-clipboard-check fa-5x text-muted"></i>
+                </div>
+                <h3 class="mb-3">No Skill Tests Available</h3>
+                <p class="text-muted mb-4">
+                    Skill assessments will appear here when employers create tests for job positions you've applied to.<br>
+                    Apply to jobs to unlock skill tests and showcase your abilities.
+                </p>
+                <div class="d-flex gap-3 justify-content-center">
+                    <a href="{{ url_for('browse_jobs') }}" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Browse Jobs
+                    </a>
+                    <a href="{{ url_for('candidate_dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Test History Section -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5><i class="fas fa-history"></i> Test History</h5>
+        </div>
+        <div class="card-body">
+            <div class="text-center py-4">
+                <i class="fas fa-clock fa-3x text-muted mb-3"></i>
+                <h5>No Test History</h5>
+                <p class="text-muted">Your completed skill assessments will appear here.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Skills Overview -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5><i class="fas fa-cogs"></i> Your Skills Profile</h5>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-3">Add skills to your profile to get matched with relevant skill tests.</p>
+            <div class="text-center py-3">
+                <a href="{{ url_for('candidate_profile') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-plus"></i> Update Skills
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.badge {
+    font-size: 0.9em;
+}
+
+.card-header {
+    border-bottom: 2px solid rgba(255,255,255,0.2);
+}
+</style>
+{% endblock %}

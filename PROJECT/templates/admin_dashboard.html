@@ -1,0 +1,398 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - JobMatch Pro{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 sidebar">
+            <div class="p-3">
+                <h5 class="text-center mb-4">
+                    <i class="fas fa-cogs me-2"></i>Admin Panel
+                </h5>
+                <nav class="nav flex-column">
+                    <a class="nav-link active" href="{{ url_for('admin_dashboard') }}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="{{ url_for('admin_users') }}">
+                        <i class="fas fa-users me-2"></i>User Management
+                    </a>
+                    <a class="nav-link" href="{{ url_for('admin_skills') }}">
+                        <i class="fas fa-cogs me-2"></i>Skills Management
+                    </a>
+                    <a class="nav-link" href="{{ url_for('admin_activity_logs') }}">
+                        <i class="fas fa-history me-2"></i>Activity Logs
+                    </a>
+                    <a class="nav-link" href="{{ url_for('admin_reports') }}">
+                        <i class="fas fa-chart-bar me-2"></i>Reports & Analytics
+                    </a>
+                </nav>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 main-content">
+            <!-- Welcome Section -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h2 class="mb-3">
+                                <i class="fas fa-shield-alt me-2 text-primary"></i>
+                                System Administration Dashboard
+                            </h2>
+                            <p class="text-muted mb-0">Monitor and manage the JobMatch Pro platform</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- System Statistics -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3>{{ stats.total_users }}</h3>
+                                <p class="mb-0">Total Users</p>
+                            </div>
+                            <i class="fas fa-users fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card" style="background: linear-gradient(135deg, #27ae60, #58d68d);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3>{{ stats.total_candidates }}</h3>
+                                <p class="mb-0">Candidates</p>
+                            </div>
+                            <i class="fas fa-user-tie fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card" style="background: linear-gradient(135deg, #f39c12, #f7dc6f);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3>{{ stats.total_employers }}</h3>
+                                <p class="mb-0">Employers</p>
+                            </div>
+                            <i class="fas fa-building fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card" style="background: linear-gradient(135deg, #e74c3c, #ec7063);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3>{{ stats.active_jobs }}</h3>
+                                <p class="mb-0">Active Jobs</p>
+                            </div>
+                            <i class="fas fa-briefcase fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Secondary Statistics -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-file-alt fa-3x text-info mb-3"></i>
+                            <h4>{{ stats.total_applications }}</h4>
+                            <p class="text-muted">Total Applications</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-cogs fa-3x text-success mb-3"></i>
+                            <h4>{{ stats.total_skills }}</h4>
+                            <p class="text-muted">Skills in Database</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-chart-line fa-3x text-warning mb-3"></i>
+                            <h4>{{ daily_registrations|length }}</h4>
+                            <p class="text-muted">Active Days (30d)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <!-- User Registration Trends -->
+                <div class="col-lg-8">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-chart-line me-2"></i>User Registration Trends (Last 30 Days)
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="registrationChart" height="300"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Activity -->
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-history me-2"></i>Recent System Activity
+                            </h5>
+                            <a href="{{ url_for('admin_activity_logs') }}" class="btn btn-sm btn-outline-primary">
+                                View All Logs
+                            </a>
+                        </div>
+                        <div class="card-body">
+                            {% if recent_activities %}
+                                <div class="activity-timeline">
+                                    {% for activity in recent_activities[:10] %}
+                                    <div class="activity-item">
+                                        <div class="activity-icon bg-{{ 'success' if activity.operation_type == 'INSERT' else 'warning' if activity.operation_type == 'UPDATE' else 'danger' }}">
+                                            <i class="fas fa-{{ 'plus' if activity.operation_type == 'INSERT' else 'edit' if activity.operation_type == 'UPDATE' else 'trash' }}"></i>
+                                        </div>
+                                        <div class="activity-content">
+                                            <div class="activity-header">
+                                                <strong>{{ activity.operation_type }}</strong> on {{ activity.table_name }}
+                                                <small class="text-muted ms-2">{{ activity.timestamp.strftime('%b %d, %H:%M') }}</small>
+                                            </div>
+                                            <div class="activity-details">
+                                                Record ID: {{ activity.record_id }}
+                                                {% if activity.user_id %}
+                                                • User ID: {{ activity.user_id }}
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-muted text-center py-3">No recent activity</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar Content -->
+                <div class="col-lg-4">
+                    <!-- System Health -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-heartbeat me-2"></i>System Health
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="health-metric mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span>Database Status</span>
+                                    <span class="badge bg-success">Online</span>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar bg-success" style="width: 100%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="health-metric mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span>User Activity</span>
+                                    <span class="badge bg-success">High</span>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar bg-success" style="width: 85%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="health-metric">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span>System Load</span>
+                                    <span class="badge bg-warning">Medium</span>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar bg-warning" style="width: 65%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-bolt me-2"></i>Quick Actions
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-grid gap-2">
+                                <a href="{{ url_for('admin_users') }}" class="btn btn-outline-primary">
+                                    <i class="fas fa-users me-2"></i>Manage Users
+                                </a>
+                                <a href="{{ url_for('admin_skills') }}" class="btn btn-outline-success">
+                                    <i class="fas fa-cogs me-2"></i>Manage Skills
+                                </a>
+                                <button class="btn btn-outline-warning" onclick="exportSystemData()">
+                                    <i class="fas fa-download me-2"></i>Export Data
+                                </button>
+                                <button class="btn btn-outline-info" onclick="systemMaintenance()">
+                                    <i class="fas fa-tools me-2"></i>System Maintenance
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Platform Statistics -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-chart-pie me-2"></i>Platform Overview
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="stat-breakdown">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span>User Growth Rate</span>
+                                    <span class="text-success fw-bold">+12%</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span>Job Posting Rate</span>
+                                    <span class="text-success fw-bold">+8%</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span>Application Rate</span>
+                                    <span class="text-success fw-bold">+15%</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>Success Rate</span>
+                                    <span class="text-warning fw-bold">78%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.activity-timeline {
+    position: relative;
+}
+
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.activity-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.activity-content {
+    flex-grow: 1;
+}
+
+.activity-header {
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.activity-details {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.health-metric .progress {
+    height: 6px;
+}
+
+.stat-breakdown {
+    font-size: 0.9rem;
+}
+</style>
+
+<script>
+// Registration trends chart
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('registrationChart');
+    if (ctx) {
+        // Process daily registration data
+        const registrationData = {{ daily_registrations|tojson }};
+        const labels = registrationData.map(item => item.date);
+        const data = registrationData.map(item => item.count);
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'New Registrations',
+                    data: data,
+                    borderColor: '#3498db',
+                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+
+function exportSystemData() {
+    alert('System data export feature coming soon!');
+}
+
+function systemMaintenance() {
+    if (confirm('Are you sure you want to enter maintenance mode? This will temporarily disable user access.')) {
+        alert('Maintenance mode feature coming soon!');
+    }
+}
+
+// Auto-refresh dashboard every 5 minutes
+setInterval(() => {
+    location.reload();
+}, 300000);
+</script>
+{% endblock %}

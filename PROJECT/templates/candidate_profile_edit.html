@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Profile - JobMatch Pro{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 sidebar">
+            <div class="p-3">
+                <h5 class="text-center mb-4">
+                    <i class="fas fa-user-circle me-2"></i>{{ user.first_name }}
+                </h5>
+                <nav class="nav flex-column">
+                    <a class="nav-link" href="{{ url_for('candidate_dashboard') }}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link active" href="{{ url_for('candidate_profile') }}">
+                        <i class="fas fa-user-edit me-2"></i>Edit Profile
+                    </a>
+                    <a class="nav-link" href="{{ url_for('candidate_applications') }}">
+                        <i class="fas fa-file-alt me-2"></i>My Applications
+                    </a>
+                    <a class="nav-link" href="{{ url_for('candidate_recommendations') }}">
+                        <i class="fas fa-star me-2"></i>Job Recommendations
+                    </a>
+                </nav>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 main-content">
+            <div class="row">
+                <div class="col-lg-8">
+                    <h2><i class="fas fa-user-edit me-2"></i>Edit Your Profile</h2>
+                    <p class="text-muted mb-4">Keep your profile updated to get better job matches</p>
+
+                    <form method="POST" enctype="multipart/form-data">
+                        <!-- Personal Information -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-user me-2"></i>Personal Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="first_name" class="form-label">First Name *</label>
+                                        <input type="text" class="form-control" id="first_name" name="first_name" 
+                                               value="{{ user.first_name }}" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="last_name" class="form-label">Last Name *</label>
+                                        <input type="text" class="form-control" id="last_name" name="last_name" 
+                                               value="{{ user.last_name }}" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="email" class="form-label">Email Address</label>
+                                        <input type="email" class="form-control" value="{{ user.email }}" disabled>
+                                        <small class="text-muted">Email cannot be changed</small>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="phone" class="form-label">Phone Number</label>
+                                        <input type="tel" class="form-control" id="phone" name="phone" 
+                                               value="{{ user.phone or '' }}">
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="location" class="form-label">Location</label>
+                                    <input type="text" class="form-control" id="location" name="location" 
+                                           value="{{ profile.location or '' }}" placeholder="City, State, Country">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Professional Information -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-briefcase me-2"></i>Professional Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="current_position" class="form-label">Current Position</label>
+                                        <input type="text" class="form-control" id="current_position" name="current_position" 
+                                               value="{{ profile.current_position or '' }}" placeholder="e.g., Software Developer">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="experience_years" class="form-label">Years of Experience</label>
+                                        <select class="form-select" id="experience_years" name="experience_years">
+                                            <option value="0" {{ 'selected' if profile.experience_years == 0 }}>0 years (Entry Level)</option>
+                                            {% for i in range(1, 21) %}
+                                            <option value="{{ i }}" {{ 'selected' if profile.experience_years == i }}>{{ i }} year{{ 's' if i != 1 else '' }}</option>
+                                            {% endfor %}
+                                            <option value="20" {{ 'selected' if profile.experience_years >= 20 }}>20+ years</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="education_level" class="form-label">Education Level</label>
+                                        <select class="form-select" id="education_level" name="education_level">
+                                            <option value="">Select education level</option>
+                                            <option value="High School" {{ 'selected' if profile.education_level == 'High School' }}>High School</option>
+                                            <option value="Bachelor" {{ 'selected' if profile.education_level == 'Bachelor' }}>Bachelor's Degree</option>
+                                            <option value="Master" {{ 'selected' if profile.education_level == 'Master' }}>Master's Degree</option>
+                                            <option value="PhD" {{ 'selected' if profile.education_level == 'PhD' }}>PhD</option>
+                                            <option value="Other" {{ 'selected' if profile.education_level == 'Other' }}>Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="salary_expectation" class="form-label">Salary Expectation (Annual)</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">$</span>
+                                            <input type="number" class="form-control" id="salary_expectation" 
+                                                   name="salary_expectation" value="{{ profile.salary_expectation or '' }}" 
+                                                   placeholder="75000">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="summary" class="form-label">Professional Summary</label>
+                                    <textarea class="form-control" id="summary" name="summary" rows="4" 
+                                              placeholder="Brief description of your professional background...">{{ profile.summary or '' }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Skills Section -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>Skills & Expertise</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Select Your Skills</label>
+                                    <div class="skills-grid">
+                                        {% for skill in available_skills %}
+                                            {% set is_selected = false %}
+                                            {% set candidate_skill = none %}
+                                            {% for cs, s in candidate_skills %}
+                                                {% if s.id == skill.id %}
+                                                    {% set is_selected = true %}
+                                                    {% set candidate_skill = cs %}
+                                                {% endif %}
+                                            {% endfor %}
+                                            
+                                            <div class="skill-item">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" 
+                                                           name="skills[]" value="{{ skill.id }}" 
+                                                           id="skill_{{ skill.id }}" 
+                                                           {{ 'checked' if is_selected }}
+                                                           onchange="toggleSkillDetails({{ skill.id }})">
+                                                    <label class="form-check-label" for="skill_{{ skill.id }}">
+                                                        {{ skill.skill_name }}
+                                                    </label>
+                                                </div>
+                                                
+                                                <div class="skill-details" id="details_{{ skill.id }}" 
+                                                     style="display: {{ 'block' if is_selected else 'none' }}">
+                                                    <div class="row mt-2">
+                                                        <div class="col-6">
+                                                            <select class="form-select form-select-sm" 
+                                                                    name="proficiency_{{ skill.id }}">
+                                                                <option value="Beginner" {{ 'selected' if candidate_skill and candidate_skill.proficiency_level == 'Beginner' }}>Beginner</option>
+                                                                <option value="Intermediate" {{ 'selected' if candidate_skill and candidate_skill.proficiency_level == 'Intermediate' else 'selected' if not candidate_skill }}>Intermediate</option>
+                                                                <option value="Advanced" {{ 'selected' if candidate_skill and candidate_skill.proficiency_level == 'Advanced' }}>Advanced</option>
+                                                                <option value="Expert" {{ 'selected' if candidate_skill and candidate_skill.proficiency_level == 'Expert' }}>Expert</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <input type="number" class="form-control form-control-sm" 
+                                                                   name="years_{{ skill.id }}" 
+                                                                   value="{{ candidate_skill.years_experience if candidate_skill else 0 }}" 
+                                                                   min="0" max="50" placeholder="Years">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-save me-2"></i>Save Profile Changes
+                            </button>
+                            <a href="{{ url_for('candidate_dashboard') }}" class="btn btn-outline-secondary btn-lg ms-3">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Profile Completion Sidebar -->
+                <div class="col-lg-4">
+                    <div class="card sticky-top">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Profile Completion</h6>
+                        </div>
+                        <div class="card-body">
+                            {% set completion = 0 %}
+                            {% if profile.experience_years %}{% set completion = completion + 20 %}{% endif %}
+                            {% if profile.education_level %}{% set completion = completion + 20 %}{% endif %}
+                            {% if profile.current_position %}{% set completion = completion + 20 %}{% endif %}
+                            {% if profile.location %}{% set completion = completion + 20 %}{% endif %}
+                            {% if profile.summary %}{% set completion = completion + 20 %}{% endif %}
+                            
+                            <div class="text-center mb-3">
+                                <div class="progress-circle" data-percentage="{{ completion }}">
+                                    <span class="progress-text">{{ completion }}%</span>
+                                </div>
+                            </div>
+                            
+                            <div class="completion-checklist">
+                                <div class="check-item {{ 'completed' if profile.experience_years }}">
+                                    <i class="fas fa-{{ 'check text-success' if profile.experience_years else 'times text-danger' }} me-2"></i>
+                                    Experience Years
+                                </div>
+                                <div class="check-item {{ 'completed' if profile.education_level }}">
+                                    <i class="fas fa-{{ 'check text-success' if profile.education_level else 'times text-danger' }} me-2"></i>
+                                    Education Level
+                                </div>
+                                <div class="check-item {{ 'completed' if profile.current_position }}">
+                                    <i class="fas fa-{{ 'check text-success' if profile.current_position else 'times text-danger' }} me-2"></i>
+                                    Current Position
+                                </div>
+                                <div class="check-item {{ 'completed' if profile.location }}">
+                                    <i class="fas fa-{{ 'check text-success' if profile.location else 'times text-danger' }} me-2"></i>
+                                    Location
+                                </div>
+                                <div class="check-item {{ 'completed' if profile.summary }}">
+                                    <i class="fas fa-{{ 'check text-success' if profile.summary else 'times text-danger' }} me-2"></i>
+                                    Professional Summary
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 10px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+}
+
+.skill-item {
+    padding: 10px;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    background-color: #f8f9fa;
+    transition: all 0.2s ease;
+}
+
+.skill-item:hover {
+    background-color: #e9ecef;
+    transform: translateY(-1px);
+}
+
+.skill-details {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #dee2e6;
+}
+
+.progress-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: conic-gradient(#007bff 0deg, #007bff calc(var(--percentage) * 3.6deg), #e9ecef calc(var(--percentage) * 3.6deg));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    position: relative;
+}
+
+.progress-circle::before {
+    content: '';
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: white;
+    position: absolute;
+}
+
+.progress-text {
+    font-weight: bold;
+    color: #007bff;
+    z-index: 1;
+}
+
+.completion-checklist {
+    font-size: 0.9rem;
+}
+
+.check-item {
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.check-item:last-child {
+    border-bottom: none;
+}
+
+.check-item.completed {
+    opacity: 0.7;
+}
+
+@media (max-width: 768px) {
+    .skills-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .progress-circle {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .progress-circle::before {
+        width: 45px;
+        height: 45px;
+    }
+}
+</style>
+
+<script>
+function toggleSkillDetails(skillId) {
+    const checkbox = document.getElementById(`skill_${skillId}`);
+    const details = document.getElementById(`details_${skillId}`);
+    
+    details.style.display = checkbox.checked ? 'block' : 'none';
+}
+
+// Set progress circle percentage
+document.addEventListener('DOMContentLoaded', function() {
+    const circles = document.querySelectorAll('.progress-circle');
+    circles.forEach(circle => {
+        const percentage = circle.dataset.percentage;
+        circle.style.setProperty('--percentage', percentage);
+    });
+});
+</script>
+{% endblock %}

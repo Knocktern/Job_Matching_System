@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}Apply for {{ job.title }} - JobMatch Pro{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Job Summary Card -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h4 class="mb-2">{{ job.title }}</h4>
+                            <h6 class="text-muted mb-3">
+                                <i class="fas fa-building me-2"></i>{{ job.company.company_name }}
+                            </h6>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <small class="text-muted">
+                                        <i class="fas fa-map-marker-alt me-1"></i>{{ job.location }}
+                                    </small>
+                                </div>
+                                <div class="col-sm-6">
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock me-1"></i>{{ job.job_type }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            {% if job.salary_min and job.salary_max %}
+                            <div class="text-success fw-bold">
+                                ${{ "{:,.0f}".format(job.salary_min) }} - ${{ "{:,.0f}".format(job.salary_max) }}
+                            </div>
+                            {% endif %}
+                            <small class="text-muted">
+                                {{ job.experience_required }}+ years experience
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Application Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-paper-plane me-2"></i>Submit Your Application
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Profile Completeness Check -->
+                    <div class="alert alert-info mb-4">
+                        <h6><i class="fas fa-info-circle me-2"></i>Application Review</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <i class="fas fa-{{ 'check text-success' if profile.experience_years else 'times text-danger' }} me-2"></i>
+                                    Experience: {{ profile.experience_years or 'Not specified' }} years
+                                </div>
+                                <div class="mb-2">
+                                    <i class="fas fa-{{ 'check text-success' if profile.education_level else 'times text-danger' }} me-2"></i>
+                                    Education: {{ profile.education_level or 'Not specified' }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <i class="fas fa-{{ 'check text-success' if profile.current_position else 'times text-danger' }} me-2"></i>
+                                    Current Position: {{ profile.current_position or 'Not specified' }}
+                                </div>
+                                <div class="mb-2">
+                                    <i class="fas fa-{{ 'check text-success' if profile.cv_filename else 'times text-danger' }} me-2"></i>
+                                    CV: {{ profile.cv_filename or 'Not uploaded' }}
+                                </div>
+                            </div>
+                        </div>
+                        {% if not (profile.experience_years and profile.education_level and profile.current_position) %}
+                        <div class="mt-2">
+                            <small class="text-warning">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                Consider completing your profile for a stronger application.
+                                <a href="{{ url_for('candidate_profile') }}" class="text-decoration-none">Update Profile</a>
+                            </small>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <form method="POST" enctype="multipart/form-data">
+                        <!-- Personal Information Summary -->
+                        <div class="mb-4">
+                            <h6><i class="fas fa-user me-2"></i>Applicant Information</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-control-plaintext">
+                                        <strong>Name:</strong> {{ profile.user.first_name }} {{ profile.user.last_name }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-control-plaintext">
+                                        <strong>Email:</strong> {{ profile.user.email }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-control-plaintext">
+                                        <strong>Phone:</strong> {{ profile.user.phone or 'Not provided' }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-control-plaintext">
+                                        <strong>Location:</strong> {{ profile.location or 'Not specified' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cover Letter -->
+                        <div class="mb-4">
+                            <label for="cover_letter" class="form-label">
+                                <i class="fas fa-file-alt me-2"></i>Cover Letter
+                                <span class="text-muted">(Optional but recommended)</span>
+                            </label>
+                            <textarea class="form-control" id="cover_letter" name="cover_letter" rows="8" 
+                                      placeholder="Tell us why you're interested in this position and how your skills and experience make you a great fit..."></textarea>
+                            <div class="form-text">
+                                <i class="fas fa-lightbulb me-1"></i>
+                                <strong>Tip:</strong> Mention specific skills from the job requirements and explain how your experience relates to this role.
+                            </div>
+                        </div>
+
+                        <!-- CV Upload (Optional) -->
+                        <div class="mb-4">
+                            <label for="cv_file" class="form-label">
+                                <i class="fas fa-upload me-2"></i>Upload Updated CV
+                                <span class="text-muted">(Optional - will replace your current CV)</span>
+                            </label>
+                            {% if profile.cv_filename %}
+                            <div class="alert alert-success py-2 mb-2">
+                                <i class="fas fa-file-pdf me-2"></i>
+                                Current CV: {{ profile.cv_filename }}
+                            </div>
+                            {% endif %}
+                            <input type="file" class="form-control" id="cv_file" name="cv_file" 
+                                   accept=".pdf,.doc,.docx">
+                            <div class="form-text">
+                                Accepted formats: PDF, DOC, DOCX (Max 16MB)
+                            </div>
+                        </div>
+
+                        <!-- Additional Questions -->
+                        <div class="mb-4">
+                            <h6><i class="fas fa-question-circle me-2"></i>Additional Information</h6>
+                            
+                            <div class="mb-3">
+                                <label for="availability" class="form-label">When can you start?</label>
+                                <select class="form-select" id="availability" name="availability">
+                                    <option value="">Select availability</option>
+                                    <option value="immediately">Immediately</option>
+                                    <option value="1-week">Within 1 week</option>
+                                    <option value="2-weeks">2 weeks notice</option>
+                                    <option value="1-month">1 month notice</option>
+                                    <option value="negotiable">Negotiable</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="salary_expectation" class="form-label">Salary Expectation (Optional)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="salary_expectation" 
+                                           name="salary_expectation" placeholder="75000" 
+                                           value="{{ profile.salary_expectation or '' }}">
+                                    <span class="input-group-text">per year</span>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="remote_work" name="remote_work">
+                                    <label class="form-check-label" for="remote_work">
+                                        I am open to remote work opportunities
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="relocation" name="relocation">
+                                    <label class="form-check-label" for="relocation">
+                                        I am willing to relocate for this position
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Terms and Conditions -->
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="terms" name="terms" required>
+                                <label class="form-check-label" for="terms">
+                                    I agree to the <a href="#" class="text-decoration-none">Terms of Service</a> and 
+                                    <a href="#" class="text-decoration-none">Privacy Policy</a>. I understand that my 
+                                    application will be shared with {{ job.company.company_name }}.
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('job_details', job_id=job.id) }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Job
+                            </a>
+                            <div>
+                                <button type="button" class="btn btn-outline-primary me-2" onclick="saveDraft()">
+                                    <i class="fas fa-save me-2"></i>Save Draft
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane me-2"></i>Submit Application
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Application Tips -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>Application Tips
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Customize your cover letter for this specific role
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Highlight relevant skills and experiences
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Ensure your CV is up-to-date
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Research the company beforehand
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Be honest about your availability
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Proofread before submitting
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function saveDraft() {
+    // This would save the application as a draft
+    alert('Draft saved! (Feature coming soon)');
+}
+
+// Auto-save functionality
+let autoSaveTimer;
+document.getElementById('cover_letter').addEventListener('input', function() {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(() => {
+        // Auto-save draft
+        console.log('Auto-saving draft...');
+    }, 5000);
+});
+
+// Character counter for cover letter
+document.getElementById('cover_letter').addEventListener('input', function() {
+    const maxLength = 2000;
+    const currentLength = this.value.length;
+    const remaining = maxLength - currentLength;
+    
+    // You can add a character counter display here
+    if (remaining < 100) {
+        this.style.borderColor = remaining < 0 ? '#dc3545' : '#ffc107';
+    } else {
+        this.style.borderColor = '';
+    }
+});
+</script>
+{% endblock %}

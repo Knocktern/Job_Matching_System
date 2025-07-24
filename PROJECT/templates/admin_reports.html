@@ -1,0 +1,655 @@
+{% extends "base.html" %}
+
+{% block title %}Reports & Analytics - JobMatch Pro{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 sidebar">
+            <div class="p-3">
+                <h5 class="text-center mb-4">
+                    <i class="fas fa-cogs me-2"></i>Admin Panel
+                </h5>
+                <nav class="nav flex-column">
+                    <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="{{ url_for('admin_users') }}">
+                        <i class="fas fa-users me-2"></i>User Management
+                    </a>
+                    <a class="nav-link" href="{{ url_for('admin_skills') }}">
+                        <i class="fas fa-cogs me-2"></i>Skills Management
+                    </a>
+                    <a class="nav-link" href="{{ url_for('admin_activity_logs') }}">
+                        <i class="fas fa-history me-2"></i>Activity Logs
+                    </a>
+                    <a class="nav-link active" href="{{ url_for('admin_reports') }}">
+                        <i class="fas fa-chart-bar me-2"></i>Reports & Analytics
+                    </a>
+                </nav>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 main-content">
+            <!-- Header -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2><i class="fas fa-chart-bar me-2"></i>Reports & Analytics</h2>
+                            <p class="text-muted">Comprehensive platform analytics and insights</p>
+                        </div>
+                        <div>
+                            <button class="btn btn-outline-primary me-2" onclick="exportAllReports()">
+                                <i class="fas fa-download me-1"></i>Export All
+                            </button>
+                            <button class="btn btn-outline-secondary me-2" onclick="scheduleReport()">
+                                <i class="fas fa-clock me-1"></i>Schedule Report
+                            </button>
+                            <button class="btn btn-primary" onclick="refreshReports()">
+                                <i class="fas fa-sync-alt me-1"></i>Refresh Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Filters -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <form id="reportFilters" class="row g-3">
+                                <div class="col-md-3">
+                                    <label for="dateRange" class="form-label">Date Range</label>
+                                    <select class="form-select" id="dateRange" name="date_range">
+                                        <option value="7">Last 7 days</option>
+                                        <option value="30" selected>Last 30 days</option>
+                                        <option value="90">Last 90 days</option>
+                                        <option value="365">Last year</option>
+                                        <option value="custom">Custom range</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3" id="customDateRange" style="display: none;">
+                                    <label for="startDate" class="form-label">Start Date</label>
+                                    <input type="date" class="form-control" id="startDate" name="start_date">
+                                </div>
+                                <div class="col-md-3" id="customDateRangeEnd" style="display: none;">
+                                    <label for="endDate" class="form-label">End Date</label>
+                                    <input type="date" class="form-control" id="endDate" name="end_date">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="reportType" class="form-label">Report Type</label>
+                                    <select class="form-select" id="reportType" name="report_type">
+                                        <option value="overview">Overview</option>
+                                        <option value="users">User Analytics</option>
+                                        <option value="jobs">Job Analytics</option>
+                                        <option value="applications">Application Analytics</option>
+                                        <option value="skills">Skills Analytics</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <div class="d-grid">
+                                        <button type="button" class="btn btn-primary" onclick="updateReports()">
+                                            <i class="fas fa-chart-line me-1"></i>Update Reports
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Key Metrics Overview -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3>{{ reports.user_growth.total_users or 0 }}</h3>
+                                <p class="mb-0">Total Users</p>
+                                <small class="text-success">
+                                    <i class="fas fa-arrow-up me-1"></i>+12% this month
+                                </small>
+                            </div>
+                            <i class="fas fa-users fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card" style="background: linear-gradient(135deg, #27ae60, #58d68d);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3>{{ reports.job_statistics.total_jobs or 0 }}</h3>
+                                <p class="mb-0">Total Jobs</p>
+                                <small class="text-light">
+                                    <i class="fas fa-arrow-up me-1"></i>+8% this month
+                                </small>
+                            </div>
+                            <i class="fas fa-briefcase fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card" style="background: linear-gradient(135deg, #3498db, #85c1e9);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3>{{ reports.application_trends.total_applications or 0 }}</h3>
+                                <p class="mb-0">Applications</p>
+                                <small class="text-light">
+                                    <i class="fas fa-arrow-up me-1"></i>+15% this month
+                                </small>
+                            </div>
+                            <i class="fas fa-file-alt fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card" style="background: linear-gradient(135deg, #f39c12, #f7dc6f);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3>78%</h3>
+                                <p class="mb-0">Success Rate</p>
+                                <small class="text-light">
+                                    <i class="fas fa-arrow-up me-1"></i>+3% this month
+                                </small>
+                            </div>
+                            <i class="fas fa-trophy fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="row mb-4">
+                <!-- User Growth Chart -->
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-chart-line me-2"></i>User Growth Trends
+                            </h5>
+                            <button class="btn btn-sm btn-outline-primary" onclick="exportChart('userGrowthChart')">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="userGrowthChart" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Application Status Distribution -->
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-chart-pie me-2"></i>Application Status Distribution
+                            </h5>
+                            <button class="btn btn-sm btn-outline-primary" onclick="exportChart('applicationStatusChart')">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="applicationStatusChart" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Analytics -->
+            <div class="row mb-4">
+                <!-- Job Statistics -->
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-briefcase me-2"></i>Job Market Analytics
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <h6>Jobs by Type</h6>
+                                    <canvas id="jobTypeChart" height="200"></canvas>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Top Locations</h6>
+                                    {% if reports.job_statistics.by_location %}
+                                        <div class="location-stats">
+                                            {% for location, count in reports.job_statistics.by_location[:5] %}
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <span>{{ location or 'Remote' }}</span>
+                                                <span class="badge bg-primary">{{ count }}</span>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <p class="text-muted">No location data available</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-12">
+                                    <h6>Top Hiring Companies</h6>
+                                    {% if reports.job_statistics.by_company %}
+                                        <div class="table-responsive">
+                                            <table class="table table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Company</th>
+                                                        <th>Active Jobs</th>
+                                                        <th>Total Applications</th>
+                                                        <th>Avg. Applications per Job</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for company, job_count in reports.job_statistics.by_company[:5] %}
+                                                    <tr>
+                                                        <td>{{ company }}</td>
+                                                        <td><span class="badge bg-info">{{ job_count }}</span></td>
+                                                        <td><span class="badge bg-success">{{ (job_count * 8.5)|round|int }}</span></td>
+                                                        <td>{{ "%.1f"|format(8.5) }}</td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    {% else %}
+                                        <p class="text-muted">No company data available</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Skills Demand -->
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-cogs me-2"></i>Skills in Demand
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if reports.skill_demand %}
+                                <div class="skills-demand">
+                                    {% for skill_name, category, demand_count in reports.skill_demand[:10] %}
+                                    <div class="skill-demand-item mb-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <strong>{{ skill_name }}</strong>
+                                            <span class="badge bg-primary">{{ demand_count }}</span>
+                                        </div>
+                                        <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar" style="width: {{ (demand_count / reports.skill_demand[0][2] * 100)|round }}%"></div>
+                                        </div>
+                                        <small class="text-muted">{{ category or 'General' }}</small>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-muted">No skill demand data available</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Application Trends -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-chart-area me-2"></i>Application Trends & Performance
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-4">
+                                <div class="col-md-8">
+                                    <canvas id="applicationTrendsChart" height="300"></canvas>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6>Application Status Breakdown</h6>
+                                    {% if reports.application_trends.status_distribution %}
+                                        {% for status, count in reports.application_trends.status_distribution %}
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span>{{ status.replace('_', ' ').title() }}</span>
+                                            <span class="badge bg-{{ 'success' if status == 'hired' else 'primary' if status == 'shortlisted' else 'warning' if status == 'under_review' else 'secondary' }}">
+                                                {{ count }}
+                                            </span>
+                                        </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <p class="text-muted">No status data available</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Export and Actions -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-tools me-2"></i>Report Actions
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Export Options</h6>
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-outline-primary" onclick="exportReport('pdf')">
+                                            <i class="fas fa-file-pdf me-2"></i>Export as PDF
+                                        </button>
+                                        <button class="btn btn-outline-success" onclick="exportReport('excel')">
+                                            <i class="fas fa-file-excel me-2"></i>Export as Excel
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="exportReport('csv')">
+                                            <i class="fas fa-file-csv me-2"></i>Export as CSV
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Scheduled Reports</h6>
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-outline-warning" onclick="scheduleReport('daily')">
+                                            <i class="fas fa-calendar-day me-2"></i>Daily Reports
+                                        </button>
+                                        <button class="btn btn-outline-warning" onclick="scheduleReport('weekly')">
+                                            <i class="fas fa-calendar-week me-2"></i>Weekly Reports
+                                        </button>
+                                        <button class="btn btn-outline-warning" onclick="scheduleReport('monthly')">
+                                            <i class="fas fa-calendar-alt me-2"></i>Monthly Reports
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.skills-demand {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.skill-demand-item {
+    padding: 8px;
+    border-radius: 6px;
+    background-color: #f8f9fa;
+}
+
+.location-stats {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+}
+
+.stats-card {
+    transition: transform 0.2s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+}
+</style>
+
+<script>
+// Chart instances
+let userGrowthChart, applicationStatusChart, jobTypeChart, applicationTrendsChart;
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCharts();
+    
+    // Date range change handler
+    document.getElementById('dateRange').addEventListener('change', function() {
+        const customRange = document.getElementById('customDateRange');
+        const customRangeEnd = document.getElementById('customDateRangeEnd');
+        
+        if (this.value === 'custom') {
+            customRange.style.display = 'block';
+            customRangeEnd.style.display = 'block';
+        } else {
+            customRange.style.display = 'none';
+            customRangeEnd.style.display = 'none';
+        }
+    });
+});
+
+function initializeCharts() {
+    // User Growth Chart
+    const userGrowthCtx = document.getElementById('userGrowthChart');
+    if (userGrowthCtx) {
+        userGrowthChart = new Chart(userGrowthCtx, {
+            type: 'line',
+            data: {
+                labels: {{ reports.user_growth|map(attribute='date')|list|tojson if reports.user_growth else '[]'|safe }},
+                datasets: [{
+                    label: 'New Users',
+                    data: {{ reports.user_growth|map(attribute='count')|list|tojson if reports.user_growth else '[]'|safe }},
+                    borderColor: '#3498db',
+                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // Application Status Chart
+    const applicationStatusCtx = document.getElementById('applicationStatusChart');
+    if (applicationStatusCtx) {
+        const statusData = {{ reports.application_trends.status_distribution|tojson if reports.application_trends and reports.application_trends.status_distribution else '[]'|safe }};
+        
+        applicationStatusChart = new Chart(applicationStatusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: statusData.map(item => item[0].replace('_', ' ').toUpperCase()),
+                datasets: [{
+                    data: statusData.map(item => item[1]),
+                    backgroundColor: [
+                        '#28a745', // hired
+                        '#007bff', // shortlisted
+                        '#ffc107', // under_review
+                        '#17a2b8', // interview_scheduled
+                        '#dc3545', // rejected
+                        '#6c757d'  // applied
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    // Job Type Chart
+    const jobTypeCtx = document.getElementById('jobTypeChart');
+    if (jobTypeCtx) {
+        const jobTypeData = {{ reports.job_statistics.by_type|tojson if reports.job_statistics and reports.job_statistics.by_type else '[]'|safe }};
+        
+        jobTypeChart = new Chart(jobTypeCtx, {
+            type: 'bar',
+            data: {
+                labels: jobTypeData.map(item => item[0]),
+                datasets: [{
+                    data: jobTypeData.map(item => item[1]),
+                    backgroundColor: ['#3498db', '#27ae60', '#f39c12', '#e74c3c']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // Application Trends Chart
+    const applicationTrendsCtx = document.getElementById('applicationTrendsChart');
+    if (applicationTrendsCtx) {
+        const trendsData = {{ reports.application_trends.daily_applications|tojson if reports.application_trends and reports.application_trends.daily_applications else '[]'|safe }};
+        
+        applicationTrendsChart = new Chart(applicationTrendsCtx, {
+            type: 'line',
+            data: {
+                labels: trendsData.map(item => item.date),
+                datasets: [{
+                    label: 'Applications',
+                    data: trendsData.map(item => item.count),
+                    borderColor: '#27ae60',
+                    backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+}
+
+function updateReports() {
+    const formData = new FormData(document.getElementById('reportFilters'));
+    const params = new URLSearchParams(formData);
+    
+    // Show loading indicator
+    showLoadingIndicator();
+    
+    // Reload page with new parameters
+    window.location.href = `${window.location.pathname}?${params.toString()}`;
+}
+
+function refreshReports() {
+    location.reload();
+}
+
+function exportReport(format) {
+    const formData = new FormData(document.getElementById('reportFilters'));
+    const params = new URLSearchParams(formData);
+    params.append('format', format);
+    
+    window.location.href = `/admin/export/reports?${params.toString()}`;
+}
+
+function exportChart(chartId) {
+    const canvas = document.getElementById(chartId);
+    const url = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.download = `${chartId}.png`;
+    link.href = url;
+    link.click();
+}
+
+function exportAllReports() {
+    const formData = new FormData(document.getElementById('reportFilters'));
+    const params = new URLSearchParams(formData);
+    
+    window.location.href = `/admin/export/reports/all?${params.toString()}`;
+}
+
+function scheduleReport(frequency) {
+    if (frequency) {
+        alert(`${frequency.charAt(0).toUpperCase() + frequency.slice(1)} report scheduling feature coming soon!`);
+    } else {
+        alert('Report scheduling feature coming soon!');
+    }
+}
+
+function showLoadingIndicator() {
+    // Add loading overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'loadingOverlay';
+    overlay.innerHTML = `
+        <div class="d-flex justify-content-center align-items-center h-100">
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Updating reports...</p>
+            </div>
+        </div>
+    `;
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.8);
+        z-index: 9999;
+    `;
+    document.body.appendChild(overlay);
+}
+
+// Auto-refresh reports every 5 minutes
+setInterval(() => {
+    if (document.visibilityState === 'visible') {
+        console.log('Auto-refreshing reports...');
+        // You could implement partial refresh here instead of full page reload
+    }
+}, 300000);
+</script>
+{% endblock %}

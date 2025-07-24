@@ -1,0 +1,444 @@
+{% extends "base.html" %}
+
+{% block title %}Applications - JobMatch Pro{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 sidebar">
+            <div class="p-3">
+                <h5 class="text-center mb-4">
+                    <i class="fas fa-building me-2"></i>{{ company.company_name[:15] }}{% if company.company_name|length > 15 %}...{% endif %}
+                </h5>
+                <nav class="nav flex-column">
+                    <a class="nav-link" href="{{ url_for('employer_dashboard') }}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="{{ url_for('employer_jobs') }}">
+                        <i class="fas fa-briefcase me-2"></i>My Jobs
+                    </a>
+                    <a class="nav-link" href="{{ url_for('create_job') }}">
+                        <i class="fas fa-plus me-2"></i>Post New Job
+                    </a>
+                    <a class="nav-link active" href="{{ url_for('employer_applications') }}">
+                        <i class="fas fa-file-alt me-2"></i>Applications
+                    </a>
+                    <a class="nav-link" href="{{ url_for('messages') }}">
+                        <i class="fas fa-envelope me-2"></i>Messages
+                    </a>
+                </nav>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 main-content">
+            <!-- Header -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2><i class="fas fa-file-alt me-2"></i>Job Applications</h2>
+                            <p class="text-muted">Review and manage candidate applications</p>
+                        </div>
+                        <div>
+                            <button class="btn btn-outline-primary me-2" onclick="exportApplications()">
+                                <i class="fas fa-download me-1"></i>Export
+                            </button>
+                            <button class="btn btn-primary" onclick="bulkActions()">
+                                <i class="fas fa-tasks me-1"></i>Bulk Actions
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters and Search -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <form method="GET" class="row g-3">
+                                <div class="col-md-3">
+                                    <label for="job_filter" class="form-label">Filter by Job</label>
+                                    <select class="form-select" id="job_filter" name="job_id">
+                                        <option value="">All Jobs</option>
+                                        {% for job in company_jobs %}
+                                        <option value="{{ job.id }}" {{ 'selected' if job_filter == job.id|string }}>
+                                            {{ job.title }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="status_filter" class="form-label">Filter by Status</label>
+                                    <select class="form-select" id="status_filter" name="status">
+                                        <option value="">All Statuses</option>
+                                        <option value="applied" {{ 'selected' if status_filter == 'applied' }}>Applied</option>
+                                        <option value="under_review" {{ 'selected' if status_filter == 'under_review' }}>Under Review</option>
+                                        <option value="shortlisted" {{ 'selected' if status_filter == 'shortlisted' }}>Shortlisted</option>
+                                        <option value="interview_scheduled" {{ 'selected' if status_filter == 'interview_scheduled' }}>Interview Scheduled</option>
+                                        <option value="hired" {{ 'selected' if status_filter == 'hired' }}>Hired</option>
+                                        <option value="rejected" {{ 'selected' if status_filter == 'rejected' }}>Rejected</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="search" class="form-label">Search Candidates</label>
+                                    <input type="text" class="form-control" id="search" name="search" 
+                                           placeholder="Name, email, position..." value="{{ request.args.get('search', '') }}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <div class="d-grid">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-search me-1"></i>Filter
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Applications Summary -->
+            <div class="row mb-4">
+                {% set total_apps = applications|length %}
+                {% set applied_count = applications|selectattr('0.application_status', 'equalto', 'applied')|list|length %}
+                {% set under_review_count = applications|selectattr('0.application_status', 'equalto', 'under_review')|list|length %}
+                {% set shortlisted_count = applications|selectattr('0.application_status', 'equalto', 'shortlisted')|list|length %}
+                {% set hired_count = applications|selectattr('0.application_status', 'equalto', 'hired')|list|length %}
+                
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3>{{ total_apps }}</h3>
+                                <p class="mb-0">Total Applications</p>
+                            </div>
+                            <i class="fas fa-file-alt fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card" style="background: linear-gradient(135deg, #f39c12, #f7dc6f);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3>{{ under_review_count }}</h3>
+                                <p class="mb-0">Under Review</p>
+                            </div>
+                            <i class="fas fa-clock fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card" style="background: linear-gradient(135deg, #3498db, #85c1e9);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3>{{ shortlisted_count }}</h3>
+                                <p class="mb-0">Shortlisted</p>
+                            </div>
+                            <i class="fas fa-star fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card" style="background: linear-gradient(135deg, #27ae60, #58d68d);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3>{{ hired_count }}</h3>
+                                <p class="mb-0">Hired</p>
+                            </div>
+                            <i class="fas fa-trophy fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Applications List -->
+            <div class="row">
+                <div class="col-12">
+                    {% if applications %}
+                        {% for application, job, candidate, user in applications %}
+                        <div class="card mb-3 application-card" data-application-id="{{ application.id }}">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <!-- Candidate Info -->
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="avatar-circle me-3">
+                                                {{ user.first_name[0] }}{{ user.last_name[0] }}
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h5 class="mb-1">{{ user.first_name }} {{ user.last_name }}</h5>
+                                                <div class="d-flex align-items-center mb-1">
+                                                    <span class="text-muted me-3">
+                                                        <i class="fas fa-envelope me-1"></i>{{ user.email }}
+                                                    </span>
+                                                    {% if user.phone %}
+                                                    <span class="text-muted">
+                                                        <i class="fas fa-phone me-1"></i>{{ user.phone }}
+                                                    </span>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="d-flex align-items-center">
+                                                    {% if candidate.current_position %}
+                                                    <span class="text-muted me-3">
+                                                        <i class="fas fa-briefcase me-1"></i>{{ candidate.current_position }}
+                                                    </span>
+                                                    {% endif %}
+                                                    {% if candidate.experience_years %}
+                                                    <span class="text-muted me-3">
+                                                        <i class="fas fa-user-tie me-1"></i>{{ candidate.experience_years }} years exp.
+                                                    </span>
+                                                    {% endif %}
+                                                    {% if candidate.location %}
+                                                    <span class="text-muted">
+                                                        <i class="fas fa-map-marker-alt me-1"></i>{{ candidate.location }}
+                                                    </span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="text-end">
+                                                <span class="badge bg-{{ 'success' if application.application_status == 'hired' else 'primary' if application.application_status == 'shortlisted' else 'warning' if application.application_status == 'under_review' else 'info' if application.application_status == 'interview_scheduled' else 'danger' if application.application_status == 'rejected' else 'secondary' }} fs-6">
+                                                    {{ application.application_status.replace('_', ' ').title() }}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Job and Application Info -->
+                                        <div class="row mb-3">
+                                            <div class="col-sm-6">
+                                                <h6 class="text-primary mb-1">Applied for: {{ job.title }}</h6>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-calendar-alt me-1"></i>
+                                                    Applied {{ application.applied_at.strftime('%b %d, %Y at %H:%M') }}
+                                                </small>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                {% if application.exam_score %}
+                                                <div class="mb-1">
+                                                    <span class="text-success">
+                                                        <i class="fas fa-chart-line me-1"></i>
+                                                        Exam Score: {{ "%.1f"|format(application.exam_score) }}%
+                                                    </span>
+                                                </div>
+                                                {% endif %}
+                                                {% if candidate.salary_expectation %}
+                                                <small class="text-muted">
+                                                    <i class="fas fa-dollar-sign me-1"></i>
+                                                    Salary Expectation: ${{ "{:,.0f}".format(candidate.salary_expectation) }}
+                                                </small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+
+                                        <!-- Cover Letter Preview -->
+                                        {% if application.cover_letter %}
+                                        <div class="mb-3">
+                                            <h6 class="small mb-1">Cover Letter:</h6>
+                                            <p class="text-muted small mb-0">
+                                                {{ application.cover_letter[:200] }}{% if application.cover_letter|length > 200 %}...{% endif %}
+                                            </p>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="col-md-4">
+                                        <div class="d-flex flex-column h-100 justify-content-between">
+                                            <!-- Quick Actions -->
+                                            <div class="mb-3">
+                                                <div class="d-grid gap-2">
+                                                    <a href="{{ url_for('employer_view_application', application_id=application.id) }}" 
+                                                       class="btn btn-primary btn-sm">
+                                                        <i class="fas fa-eye me-1"></i>View Full Application
+                                                    </a>
+                                                    
+                                                    <div class="btn-group">
+                                                        <button class="btn btn-outline-success btn-sm" 
+                                                                onclick="updateStatus({{ application.id }}, 'shortlisted')">
+                                                            <i class="fas fa-star me-1"></i>Shortlist
+                                                        </button>
+                                                        <button class="btn btn-outline-danger btn-sm" 
+                                                                onclick="updateStatus({{ application.id }}, 'rejected')">
+                                                        <button class="btn btn-outline-danger btn-sm" 
+                                                                onclick="updateStatus({{ application.id }}, 'rejected')">
+                                                            <i class="fas fa-times me-1"></i>Reject
+                                                        </button>
+                                                    </div>
+                                                    
+                                                    <button class="btn btn-outline-info btn-sm w-100 mt-2" 
+                                                            onclick="sendMessage({{ user.id }}, '{{ user.first_name }} {{ user.last_name }}')">
+                                                        <i class="fas fa-envelope me-1"></i>Message Candidate
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Application Score -->
+                                            <div class="text-center">
+                                                {% if application.exam_score %}
+                                                <div class="score-circle bg-{{ 'success' if application.exam_score >= 70 else 'warning' if application.exam_score >= 50 else 'danger' }}">
+                                                    {{ "%.0f"|format(application.exam_score) }}%
+                                                </div>
+                                                <small class="text-muted">Exam Score</small>
+                                                {% else %}
+                                                <div class="score-circle bg-secondary">
+                                                    --
+                                                </div>
+                                                <small class="text-muted">No Exam</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="card">
+                            <div class="card-body text-center py-5">
+                                <i class="fas fa-users fa-4x text-muted mb-4"></i>
+                                <h4 class="text-muted">No Applications Found</h4>
+                                <p class="text-muted mb-4">
+                                    {% if status_filter or job_filter %}
+                                        No applications match your current filters. Try adjusting your search criteria.
+                                    {% else %}
+                                        You haven't received any applications yet. Make sure your job postings are active and visible.
+                                    {% endif %}
+                                </p>
+                                {% if not status_filter and not job_filter %}
+                                <a href="{{ url_for('create_job') }}" class="btn btn-primary">
+                                    <i class="fas fa-plus me-2"></i>Post a Job
+                                </a>
+                                {% else %}
+                                <a href="{{ url_for('employer_applications') }}" class="btn btn-outline-primary">
+                                    <i class="fas fa-times me-2"></i>Clear Filters
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Status Update Modal -->
+<div class="modal fade" id="statusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Update Application Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="statusForm">
+                    <input type="hidden" id="applicationId" name="application_id">
+                    <div class="mb-3">
+                        <label for="newStatus" class="form-label">New Status</label>
+                        <select class="form-select" id="newStatus" name="status" required>
+                            <option value="under_review">Under Review</option>
+                            <option value="shortlisted">Shortlisted</option>
+                            <option value="interview_scheduled">Interview Scheduled</option>
+                            <option value="hired">Hired</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="statusNotes" class="form-label">Notes (Optional)</label>
+                        <textarea class="form-control" id="statusNotes" name="notes" rows="3" 
+                                  placeholder="Add any notes about this status change..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitStatusUpdate()">Update Status</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.application-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.application-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.avatar-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.score-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin: 0 auto;
+}
+</style>
+
+<script>
+function updateStatus(applicationId, status) {
+    document.getElementById('applicationId').value = applicationId;
+    document.getElementById('newStatus').value = status;
+    
+    const modal = new bootstrap.Modal(document.getElementById('statusModal'));
+    modal.show();
+}
+
+function submitStatusUpdate() {
+    const form = document.getElementById('statusForm');
+    const formData = new FormData(form);
+    const applicationId = formData.get('application_id');
+    
+    fetch(`/employer/application/${applicationId}/update_status`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            location.reload();
+        } else {
+            alert('Error updating status');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating status');
+    });
+}
+
+function sendMessage(userId, userName) {
+    // This would open a message compose modal
+    alert(`Message feature for ${userName} coming soon!`);
+}
+
+function exportApplications() {
+    window.location.href = '/admin/export/applications';
+}
+
+function bulkActions() {
+    alert('Bulk actions feature coming soon!');
+}
+</script>
+{% endblock %}

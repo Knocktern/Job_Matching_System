@@ -1,0 +1,774 @@
+{% extends "base.html" %}
+
+{% block title %}Conversation with {{ other_user.first_name }} {{ other_user.last_name }} - JobMatch Pro{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Back to Messages -->
+        <div class="col-12 mb-3">
+            <a href="{{ url_for('messages') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Messages
+            </a>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-6">
+            <div class="card conversation-container">
+                <!-- Conversation Header -->
+                <div class="card-header conversation-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-circle me-3">
+                                {{ other_user.first_name[0] }}{{ other_user.last_name[0] }}
+                            </div>
+                            <div>
+                                <h5 class="mb-0">{{ other_user.first_name }} {{ other_user.last_name }}</h5>
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-{{ 'primary' if other_user.user_type == 'candidate' else 'warning' if other_user.user_type == 'employer' else 'danger' }} me-2">
+                                        {{ other_user.user_type.title() }}
+                                    </span>
+                                    <small class="text-muted" id="userStatus">
+                                        <i class="fas fa-circle text-{{ 'success' if other_user.last_login and (now() - other_user.last_login).total_seconds() < 300 else 'secondary' }} me-1"></i>
+                                        {% if other_user.last_login and (now() - other_user.last_login).total_seconds() < 300 %}
+                                            Online
+                                        {% elif other_user.last_login %}
+                                            Last seen {{ other_user.last_login.strftime('%b %d at %H:%M') }}
+                                        {% else %}
+                                            Offline
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="conversation-actions">
+                            <button class="btn btn-sm btn-outline-secondary me-2" onclick="searchInConversation()" title="Search">
+                                <i class="fas fa-search"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary me-2" onclick="viewUserProfile({{ other_user.id }})" title="View Profile">
+                                <i class="fas fa-user"></i>
+                            </button>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown" title="More Options">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#" onclick="exportConversation()">
+                                        <i class="fas fa-download me-2"></i>Export Chat
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="clearConversation()">
+                                        <i class="fas fa-trash me-2"></i>Clear History
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-warning" href="#" onclick="blockUser({{ other_user.id }})">
+                                        <i class="fas fa-ban me-2"></i>Block User
+                                    </a></li>
+                                    <li><a class="dropdown-item text-danger" href="#" onclick="reportUser({{ other_user.id }})">
+                                        <i class="fas fa-flag me-2"></i>Report User
+                                    </a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Messages Area -->
+                <div class="card-body conversation-messages" id="messagesContainer">
+                    {% if messages %}
+                        {% set current_date = none %}
+                        {% for message, sender in messages %}
+                            <!-- Date Separator -->
+                            {% if current_date != message.sent_at.date() %}
+                                {% set current_date = message.sent_at.date() %}
+                                <div class="date-separator">
+                                    <span class="date-label">
+                                        {% if current_date == today() %}
+                                            Today
+                                        {% elif current_date == yesterday() %}
+                                            Yesterday
+                                        {% else %}
+                                            {{ current_date.strftime('%B %d, %Y') }}
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            {% endif %}
+
+                            <!-- Message Bubble -->
+                            <div class="message-wrapper {{ 'sent' if sender.id == session.user_id else 'received' }}">
+                                <div class="message-bubble" data-message-id="{{ message.id }}">
+                                    <div class="message-content">
+                                        {% if message.subject and loop.first %}
+                                        <div class="message-subject">
+                                            <strong>{{ message.subject }}</strong>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <div class="message-text">
+                                            {{ message.message_text|replace('\n', '<br>')|safe }}
+                                        </div>
+                                        
+                                        {% if message.attachment_path %}
+                                        <div class="message-attachment">
+                                            <a href="{{ message.attachment_path }}" class="attachment-link" target="_blank">
+                                                <i class="fas fa-paperclip me-1"></i>
+                                                {{ message.attachment_path.split('/')[-1] }}
+                                            </a>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="message-meta">
+                                        <small class="message-time">
+                                            {{ message.sent_at.strftime('%H:%M') }}
+                                            {% if sender.id == session.user_id %}
+                                                <i class="fas fa-{{ 'check-double text-primary' if message.is_read else 'check' }} ms-1" title="{{ 'Read' if message.is_read else 'Sent' }}"></i>
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                </div>
+                                
+                                <!-- Message Actions -->
+                                <div class="message-actions">
+                                    <button class="btn btn-sm btn-link" onclick="replyToMessage({{ message.id }})" title="Reply">
+                                        <i class="fas fa-reply"></i>
+                                    </button>
+                                    {% if sender.id == session.user_id %}
+                                    <button class="btn btn-sm btn-link" onclick="editMessage({{ message.id }})" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-link text-danger" onclick="deleteMessage({{ message.id }})" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-conversation">
+                            <div class="text-center py-5">
+                                <i class="fas fa-comments fa-4x text-muted mb-3"></i>
+                                <h5 class="text-muted">Start the Conversation</h5>
+                                <p class="text-muted">Send your first message to {{ other_user.first_name }}</p>
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Typing Indicator -->
+                    <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                        <div class="message-wrapper received">
+                            <div class="typing-bubble">
+                                <div class="typing-dots">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Message Input -->
+                <div class="card-footer message-input-container">
+                    <form id="messageForm" onsubmit="sendMessage(event)">
+                        <input type="hidden" name="receiver_id" value="{{ other_user.id }}">
+                        <input type="hidden" name="thread_id" value="{{ thread_id }}">
+                        
+                        <div class="input-group">
+                            <button class="btn btn-outline-secondary" type="button" onclick="toggleEmojiPicker()" title="Emojis">
+                                <i class="fas fa-smile"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary" type="button" onclick="attachFile()" title="Attach File">
+                                <i class="fas fa-paperclip"></i>
+                            </button>
+                            <input type="text" class="form-control message-input" id="messageInput" 
+                                   name="message_text" placeholder="Type your message..." 
+                                   autocomplete="off" required>
+                            <button class="btn btn-primary" type="submit" id="sendButton">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- File Upload (Hidden) -->
+                        <input type="file" id="fileInput" style="display: none;" onchange="handleFileSelect(event)">
+                        
+                        <!-- Emoji Picker (Hidden) -->
+                        <div class="emoji-picker" id="emojiPicker" style="display: none;">
+                            <div class="emoji-grid">
+                                <span onclick="insertEmoji('😊')">😊</span>
+                                <span onclick="insertEmoji('😂')">😂</span>
+                                <span onclick="insertEmoji('❤️')">❤️</span>
+                                <span onclick="insertEmoji('👍')">👍</span>
+                                <span onclick="insertEmoji('👎')">👎</span>
+                                <span onclick="insertEmoji('🎉')">🎉</span>
+                                <span onclick="insertEmoji('🔥')">🔥</span>
+                                <span onclick="insertEmoji('💯')">💯</span>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <!-- Quick Replies (for employers/candidates) -->
+                    {% if other_user.user_type != session.user_type %}
+                    <div class="quick-replies mt-2">
+                        <small class="text-muted">Quick replies:</small>
+                        <div class="quick-reply-buttons">
+                            {% if session.user_type == 'employer' %}
+                                <button class="btn btn-sm btn-outline-primary me-1" onclick="insertQuickReply('Thank you for your application!')">
+                                    Thank you for applying
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary me-1" onclick="insertQuickReply('We would like to schedule an interview.')">
+                                    Schedule interview
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary me-1" onclick="insertQuickReply('Could you please provide more information about your experience?')">
+                                    Request more info
+                                </button>
+                            {% elif session.user_type == 'candidate' %}
+                                <button class="btn btn-sm btn-outline-primary me-1" onclick="insertQuickReply('Thank you for considering my application!')">
+                                    Thank you
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary me-1" onclick="insertQuickReply('I am very interested in this position.')">
+                                    Show interest
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary me-1" onclick="insertQuickReply('When would be a good time for an interview?')">
+                                    Ask about interview
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.conversation-container {
+    height: calc(100vh - 150px);
+    display: flex;
+    flex-direction: column;
+}
+
+.conversation-header {
+    border-bottom: 2px solid #eee;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+}
+
+.conversation-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background: linear-gradient(to bottom, #f8f9fa, #ffffff);
+}
+
+.message-input-container {
+    border-top: 2px solid #eee;
+    background-color: #f8f9fa;
+}
+
+.avatar-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.date-separator {
+    text-align: center;
+    margin: 20px 0;
+    position: relative;
+}
+
+.date-separator::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: #ddd;
+    z-index: 1;
+}
+
+.date-label {
+    background-color: #f8f9fa;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    color: #6c757d;
+    position: relative;
+    z-index: 2;
+}
+
+.message-wrapper {
+    margin-bottom: 15px;
+    display: flex;
+    position: relative;
+}
+
+.message-wrapper.sent {
+    justify-content: flex-end;
+}
+
+.message-wrapper.received {
+    justify-content: flex-start;
+}
+
+.message-bubble {
+    max-width: 70%;
+    padding: 12px 16px;
+    border-radius: 18px;
+    word-wrap: break-word;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.message-wrapper.sent .message-bubble {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.message-wrapper.received .message-bubble {
+    background-color: #e9ecef;
+    color: #333;
+    border-bottom-left-radius: 4px;
+}
+
+.message-subject {
+    font-weight: bold;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.3);
+}
+
+.message-text {
+    line-height: 1.4;
+}
+
+.message-attachment {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,0.3);
+}
+
+.attachment-link {
+    color: inherit;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.attachment-link:hover {
+    text-decoration: underline;
+}
+
+.message-meta {
+    margin-top: 4px;
+    text-align: right;
+}
+
+.message-time {
+    opacity: 0.8;
+    font-size: 0.75rem;
+}
+
+.message-actions {
+    display: none;
+    position: absolute;
+    top: -10px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 2px;
+}
+
+.message-wrapper.sent .message-actions {
+    left: -80px;
+}
+
+.message-wrapper.received .message-actions {
+    right: -80px;
+}
+
+.message-wrapper:hover .message-actions {
+    display: flex;
+}
+
+.message-actions .btn {
+    padding: 4px 8px;
+    font-size: 0.8rem;
+}
+
+.typing-indicator {
+    margin-bottom: 15px;
+}
+
+.typing-bubble {
+    background-color: #e9ecef;
+    padding: 12px 16px;
+    border-radius: 18px;
+    border-bottom-left-radius: 4px;
+    max-width: 60px;
+}
+
+.typing-dots {
+    display: flex;
+    gap: 4px;
+}
+
+.typing-dots span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #6c757d;
+    animation: typing 1.4s infinite ease-in-out;
+}
+
+.typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+.typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes typing {
+    0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+    40% { opacity: 1; transform: scale(1); }
+}
+
+.message-input {
+    border: none;
+    box-shadow: none;
+    padding: 12px;
+}
+
+.message-input:focus {
+    border: none;
+    box-shadow: none;
+}
+
+.emoji-picker {
+    position: absolute;
+    bottom: 60px;
+    left: 10px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+
+.emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+.emoji-grid span {
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    text-align: center;
+    transition: background-color 0.2s;
+}
+
+.emoji-grid span:hover {
+    background-color: #f0f0f0;
+}
+
+.quick-replies {
+    border-top: 1px solid #ddd;
+    padding-top: 8px;
+}
+
+.quick-reply-buttons {
+    margin-top: 4px;
+}
+
+.empty-conversation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+@media (max-width: 768px) {
+    .conversation-container {
+        height: calc(100vh - 100px);
+    }
+    
+    .message-bubble {
+        max-width: 85%;
+    }
+    
+    .conversation-actions .btn {
+        padding: 4px 6px;
+    }
+    
+    .quick-reply-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    
+    .quick-reply-buttons .btn {
+        font-size: 0.75rem;
+        padding: 2px 6px;
+    }
+}
+</style>
+
+<script>
+let typingTimer = null;
+let isTyping = false;
+let lastMessageCount = {{ messages|length }};
+
+document.addEventListener('DOMContentLoaded', function() {
+    scrollToBottom();
+    setupTypingIndicators();
+    setupAutoRefresh();
+    markMessagesAsRead();
+});
+
+function sendMessage(event) {
+    event.preventDefault();
+    
+    const messageInput = document.getElementById('messageInput');
+    const messageText = messageInput.value.trim();
+    
+    if (!messageText) return;
+    
+    const formData = new FormData(document.getElementById('messageForm'));
+    
+    // Disable send button
+    const sendButton = document.getElementById('sendButton');
+    sendButton.disabled = true;
+    sendButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    fetch('{{ url_for("send_message") }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            messageInput.value = '';
+            loadNewMessages();
+            stopTyping();
+        } else {
+            throw new Error('Failed to send message');
+        }
+    })
+    .catch(error => {
+        console.error('Error sending message:', error);
+        alert('Failed to send message. Please try again.');
+    })
+    .finally(() => {
+        sendButton.disabled = false;
+        sendButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
+    });
+}
+
+function loadNewMessages() {
+    fetch(`{{ url_for("view_conversation", thread_id=thread_id) }}?ajax=1`)
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newMessages = doc.querySelector('#messagesContainer').innerHTML;
+            document.getElementById('messagesContainer').innerHTML = newMessages;
+            scrollToBottom();
+        })
+        .catch(error => console.error('Error loading messages:', error));
+}
+
+function setupTypingIndicators() {
+    const messageInput = document.getElementById('messageInput');
+    
+    messageInput.addEventListener('input', function() {
+        if (!isTyping && this.value.trim()) {
+            startTyping();
+        }
+        
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(stopTyping, 2000);
+    });
+    
+    messageInput.addEventListener('blur', stopTyping);
+}
+
+function startTyping() {
+    isTyping = true;
+    fetch('/api/typing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            thread_id: '{{ thread_id }}', 
+            typing: true 
+        })
+    });
+}
+
+function stopTyping() {
+    isTyping = false;
+    clearTimeout(typingTimer);
+    fetch('/api/typing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            thread_id: '{{ thread_id }}', 
+            typing: false 
+        })
+    });
+}
+
+function setupAutoRefresh() {
+    setInterval(() => {
+        checkForNewMessages();
+    }, 5000); // Check every 5 seconds
+}
+
+function checkForNewMessages() {
+    fetch(`/api/message_count/{{ thread_id }}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.count > lastMessageCount) {
+                loadNewMessages();
+                lastMessageCount = data.count;
+            }
+            
+            // Update typing indicator
+            if (data.other_user_typing) {
+                showTypingIndicator();
+            } else {
+                hideTypingIndicator();
+            }
+        })
+        .catch(error => console.error('Error checking messages:', error));
+}
+
+function showTypingIndicator() {
+    document.getElementById('typingIndicator').style.display = 'block';
+    scrollToBottom();
+}
+
+function hideTypingIndicator() {
+    document.getElementById('typingIndicator').style.display = 'none';
+}
+
+function scrollToBottom() {
+    const container = document.getElementById('messagesContainer');
+    container.scrollTop = container.scrollHeight;
+}
+
+function markMessagesAsRead() {
+    fetch(`/api/mark_read/{{ thread_id }}`, { method: 'POST' });
+}
+
+function toggleEmojiPicker() {
+    const picker = document.getElementById('emojiPicker');
+    picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+}
+
+function insertEmoji(emoji) {
+    const input = document.getElementById('messageInput');
+    input.value += emoji;
+    input.focus();
+    document.getElementById('emojiPicker').style.display = 'none';
+}
+
+function insertQuickReply(text) {
+    const input = document.getElementById('messageInput');
+    input.value = text;
+    input.focus();
+}
+
+function attachFile() {
+    document.getElementById('fileInput').click();
+}
+
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (file) {
+        // Handle file upload
+        alert(`File attachment feature coming soon! Selected: ${file.name}`);
+    }
+}
+
+function replyToMessage(messageId) {
+    const input = document.getElementById('messageInput');
+    input.focus();
+    input.placeholder = 'Reply to message...';
+}
+
+function editMessage(messageId) {
+    alert('Message editing feature coming soon!');
+}
+
+function deleteMessage(messageId) {
+    if (confirm('Delete this message?')) {
+        fetch(`/api/delete_message/${messageId}`, { method: 'DELETE' })
+            .then(response => {
+                if (response.ok) {
+                    loadNewMessages();
+                } else {
+                    alert('Failed to delete message');
+                }
+            });
+    }
+}
+
+function searchInConversation() {
+    const query = prompt('Search in conversation:');
+    if (query) {
+        // Implement search functionality
+        alert('Search feature coming soon!');
+    }
+}
+
+function viewUserProfile(userId) {
+    window.open(`/profile/${userId}`, '_blank');
+}
+
+function exportConversation() {
+    window.location.href = `/export/conversation/{{ thread_id }}`;
+}
+
+function clearConversation() {
+    if (confirm('Clear all messages in this conversation? This cannot be undone.')) {
+        alert('Clear conversation feature coming soon!');
+    }
+}
+
+function blockUser(userId) {
+    if (confirm('Block this user? They will not be able to send you messages.')) {
+        alert('Block user feature coming soon!');
+    }
+}
+
+function reportUser(userId) {
+    alert('Report user feature coming soon!');
+}
+
+// Handle Enter key
+document.getElementById('messageInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        document.getElementById('messageForm').dispatchEvent(new Event('submit'));
+    }
+});
+
+// Close emoji picker when clicking outside
+document.addEventListener('click', function(e) {
+    const picker = document.getElementById('emojiPicker');
+    const emojiButton = e.target.closest('[onclick="toggleEmojiPicker()"]');
+    
+    if (!picker.contains(e.target) && !emojiButton) {
+        picker.style.display = 'none';
+    }
+});
+</script>
+{% endblock %}

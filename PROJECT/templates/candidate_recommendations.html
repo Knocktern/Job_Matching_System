@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+
+{% block title %}Job Recommendations - JobMatch Pro{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 sidebar">
+            <div class="p-3">
+                <h5 class="text-center mb-4">
+                    <i class="fas fa-user-circle me-2"></i>{{ user.first_name }}
+                </h5>
+                <nav class="nav flex-column">
+                    <a class="nav-link" href="{{ url_for('candidate_dashboard') }}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="{{ url_for('candidate_profile') }}">
+                        <i class="fas fa-user-edit me-2"></i>Edit Profile
+                    </a>
+                    <a class="nav-link" href="{{ url_for('candidate_applications') }}">
+                        <i class="fas fa-file-alt me-2"></i>My Applications
+                    </a>
+                    <a class="nav-link active" href="{{ url_for('candidate_recommendations') }}">
+                        <i class="fas fa-star me-2"></i>Job Recommendations
+                    </a>
+                    <a class="nav-link" href="{{ url_for('candidate_skill_analysis') }}">
+                        <i class="fas fa-chart-line me-2"></i>Skill Analysis
+                    </a>
+                </nav>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 main-content">
+            <!-- Header -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2><i class="fas fa-star me-2"></i>Personalized Job Recommendations</h2>
+                            <p class="text-muted">Jobs matched to your skills, experience, and preferences</p>
+                        </div>
+                        <div>
+                            <button class="btn btn-outline-primary me-2" onclick="refreshRecommendations()">
+                                <i class="fas fa-sync-alt me-1"></i>Refresh
+                            </button>
+                            <a href="{{ url_for('browse_jobs') }}" class="btn btn-primary">
+                                <i class="fas fa-search me-1"></i>Browse All Jobs
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if recommendations %}
+                <!-- Match Quality Filter -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <h6 class="mb-1">Filter by Match Quality</h6>
+                                        <small class="text-muted">{{ recommendations|length }} recommendations found</small>
+                                    </div>
+                                    <div class="btn-group" role="group">
+                                        <input type="radio" class="btn-check" name="matchFilter" id="all" autocomplete="off" checked>
+                                        <label class="btn btn-outline-primary" for="all">All Matches</label>
+
+                                        <input type="radio" class="btn-check" name="matchFilter" id="excellent" autocomplete="off">
+                                        <label class="btn btn-outline-success" for="excellent">Excellent (80%+)</label>
+
+                                        <input type="radio" class="btn-check" name="matchFilter" id="good" autocomplete="off">
+                                        <label class="btn btn-outline-warning" for="good">Good (60-79%)</label>
+
+                                        <input type="radio" class="btn-check" name="matchFilter" id="fair" autocomplete="off">
+                                        <label class="btn btn-outline-info" for="fair">Fair (40-59%)</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recommendations List -->
+                <div class="row" id="recommendationsContainer">
+                    {% for rec in recommendations %}
+                    <div class="col-12 mb-4 recommendation-item" data-match-score="{{ rec.match_score }}">
+                        <div class="card recommendation-card h-100">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <div>
+                                                <h5 class="card-title mb-1">
+                                                    <a href="{{ url_for('job_details', job_id=rec.job.id) }}" class="text-decoration-none">
+                                                        {{ rec.job.title }}
+                                                    </a>
+                                                </h5>
+                                                <h6 class="card-subtitle mb-2 text-muted">
+                                                    <i class="fas fa-building me-1"></i>{{ rec.company.company_name }}
+                                                </h6>
+                                            </div>
+                                            <div class="text-end">
+                                                <div class="match-score-badge bg-{{ 'success' if rec.match_score >= 80 else 'warning' if rec.match_score >= 60 else 'info' if rec.match_score >= 40 else 'secondary' }}">
+                                                    {{ rec.match_score }}%
+                                                </div>
+                                                <small class="text-muted d-block">Match Score</small>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row mb-3">
+                                            <div class="col-sm-6">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-map-marker-alt me-1"></i>{{ rec.job.location or 'Location not specified' }}
+                                                </small>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-clock me-1"></i>{{ rec.job.job_type or 'Not specified' }}
+                                                </small>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row mb-3">
+                                            <div class="col-sm-6">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-user-tie me-1"></i>{{ rec.job.experience_required }}+ years experience
+                                                </small>
+                                            </div>
+                                            {% if rec.job.salary_min and rec.job.salary_max %}
+                                            <div class="col-sm-6">
+                                                <small class="text-success">
+                                                    <i class="fas fa-dollar-sign me-1"></i>${{ "{:,.0f}".format(rec.job.salary_min) }} - ${{ "{:,.0f}".format(rec.job.salary_max) }}
+                                                </small>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <p class="card-text">
+                                            {{ rec.job.description[:200] }}{% if rec.job.description|length > 200 %}...{% endif %}
+                                        </p>
+                                        
+                                        <div class="mb-2">
+                                            <small class="text-muted">
+                                                <i class="fas fa-calendar-alt me-1"></i>Posted {{ rec.job.created_at.strftime('%b %d, %Y') }}
+                                            </small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-4">
+                                        <div class="d-flex flex-column h-100 justify-content-between">
+                                            <!-- Match Breakdown -->
+                                            <div class="mb-3">
+                                                <h6 class="small mb-2">Why This Matches:</h6>
+                                                <div class="match-reasons">
+                                                    {% if rec.match_score >= 70 %}
+                                                    <div class="match-reason">
+                                                        <i class="fas fa-check text-success me-1"></i>
+                                                        <small>Strong skill alignment</small>
+                                                    </div>
+                                                    {% endif %}
+                                                    {% if profile.experience_years >= rec.job.experience_required %}
+                                                    <div class="match-reason">
+                                                        <i class="fas fa-check text-success me-1"></i>
+                                                        <small>Experience requirement met</small>
+                                                    </div>
+                                                    {% endif %}
+                                                    {% if profile.location and rec.job.location and (profile.location.lower() in rec.job.location.lower() or rec.job.location.lower() in profile.location.lower()) %}
+                                                    <div class="match-reason">
+                                                        <i class="fas fa-check text-success me-1"></i>
+                                                        <small>Location preference match</small>
+                                                    </div>
+                                                    {% endif %}
+                                                    {% if profile.salary_expectation and rec.job.salary_min and rec.job.salary_max and rec.job.salary_min <= profile.salary_expectation <= rec.job.salary_max %}
+                                                    <div class="match-reason">
+                                                        <i class="fas fa-check text-success me-1"></i>
+                                                        <small>Salary expectation aligned</small>
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Actions -->
+                                            <div>
+                                                <a href="{{ url_for('apply_job', job_id=rec.job.id) }}" class="btn btn-primary btn-sm w-100 mb-2">
+                                                    <i class="fas fa-paper-plane me-1"></i>Apply Now
+                                                </a>
+                                                <a href="{{ url_for('job_details', job_id=rec.job.id) }}" class="btn btn-outline-primary btn-sm w-100 mb-2">
+                                                    <i class="fas fa-eye me-1"></i>View Details
+                                                </a>
+                                                <div class="btn-group w-100">
+                                                    <button class="btn btn-outline-secondary btn-sm" onclick="saveJob({{ rec.job.id }})">
+                                                        <i class="fas fa-bookmark"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-secondary btn-sm" onclick="shareJob({{ rec.job.id }})">
+                                                        <i class="fas fa-share"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-secondary btn-sm" onclick="hideRecommendation({{ rec.job.id }})">
+                                                        <i class="fas fa-eye-slash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <!-- No Recommendations -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body text-center py-5">
+                                <i class="fas fa-star fa-4x text-muted mb-4"></i>
+                                <h4 class="text-muted">No Recommendations Available</h4>
+                                <p class="text-muted mb-4">
+                                    We couldn't find any job recommendations for you at the moment. 
+                                    Try completing your profile or updating your skills to get better matches.
+                                </p>
+                                <div class="d-flex justify-content-center gap-3">
+                                    <a href="{{ url_for('candidate_profile') }}" class="btn btn-primary">
+                                        <i class="fas fa-user-edit me-2"></i>Complete Profile
+                                    </a>
+                                    <a href="{{ url_for('browse_jobs') }}" class="btn btn-outline-primary">
+                                        <i class="fas fa-search me-2"></i>Browse All Jobs
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.recommendation-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    border-left: 4px solid transparent;
+}
+
+.recommendation-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.recommendation-card[data-match-score] {
+    border-left-color: #6c757d;
+}
+
+.recommendation-card[data-match-score*="8"], 
+.recommendation-card[data-match-score*="9"] {
+    border-left-color: #28a745;
+}
+
+.recommendation-card[data-match-score*="6"], 
+.recommendation-card[data-match-score*="7"] {
+    border-left-color: #ffc107;
+}
+
+.recommendation-card[data-match-score*="4"], 
+.recommendation-card[data-match-score*="5"] {
+    border-left-color: #17a2b8;
+}
+
+.match-score-badge {
+    color: white;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.match-reason {
+    margin-bottom: 5px;
+}
+
+.match-reasons {
+    max-height: 120px;
+    overflow-y: auto;
+}
+</style>
+
+<script>
+// Filter recommendations by match score
+document.querySelectorAll('input[name="matchFilter"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const items = document.querySelectorAll('.recommendation-item');
+        
+        items.forEach(item => {
+            const matchScore = parseInt(item.dataset.matchScore);
+            let show = true;
+            
+            switch(this.id) {
+                case 'excellent':
+                    show = matchScore >= 80;
+                    break;
+                case 'good':
+                    show = matchScore >= 60 && matchScore < 80;
+                    break;
+                case 'fair':
+                    show = matchScore >= 40 && matchScore < 60;
+                    break;
+                default:
+                    show = true;
+            }
+            
+            item.style.display = show ? 'block' : 'none';
+        });
+    });
+});
+
+function refreshRecommendations() {
+    location.reload();
+}
+
+function saveJob(jobId) {
+    alert('Job saved! (Feature coming soon)');
+}
+
+function shareJob(jobId) {
+    if (navigator.share) {
+        navigator.share({
+            title: 'Job Opportunity',
+            text: 'Check out this job recommendation!',
+            url: `/job/${jobId}`
+        });
+    } else {
+        alert('Job sharing feature coming soon!');
+    }
+}
+
+function hideRecommendation(jobId) {
+    if (confirm('Hide this recommendation? You can always find it by browsing all jobs.')) {
+        const item = document.querySelector(`[data-match-score]:has(a[href*="${jobId}"])`);
+        if (item) {
+            item.style.display = 'none';
+        }
+    }
+}
+</script>
+{% endblock %}

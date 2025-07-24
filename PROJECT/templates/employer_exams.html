@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Exams - JobMatch Pro{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Manage MCQ Exams</h2>
+        <a href="{{ url_for('employer_dashboard') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Create New Exam -->
+    {% if jobs_without_exams %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5><i class="fas fa-plus"></i> Create New Exam</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('create_exam') }}">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Select Job Position *</label>
+                        <select class="form-select" name="job_id" required>
+                            <option value="">Choose a job...</option>
+                            {% for job in jobs_without_exams %}
+                            <option value="{{ job.id }}">{{ job.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Exam Title *</label>
+                        <input type="text" class="form-control" name="exam_title" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" name="description" rows="3"></textarea>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Duration (Minutes)</label>
+                        <input type="number" class="form-control" name="duration_minutes" value="60" min="10" max="180">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Passing Score (%)</label>
+                        <input type="number" class="form-control" name="passing_score" value="60" min="0" max="100">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Create Exam</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Existing Exams -->
+    <div class="card">
+        <div class="card-header">
+            <h5><i class="fas fa-list"></i> Your Exams</h5>
+        </div>
+        <div class="card-body">
+            {% if exams %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Exam Title</th>
+                            <th>Job Position</th>
+                            <th>Questions</th>
+                            <th>Duration</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for exam, job in exams %}
+                        <tr>
+                            <td>
+                                <strong>{{ exam.exam_title }}</strong><br>
+                                <small class="text-muted">{{ exam.description[:50] }}...</small>
+                            </td>
+                            <td>{{ job.title }}</td>
+                            <td>{{ exam.total_questions }} questions</td>
+                            <td>{{ exam.duration_minutes }} min</td>
+                            <td>
+                                <span class="badge bg-{% if exam.is_active %}success{% else %}secondary{% endif %}">
+                                    {% if exam.is_active %}Active{% else %}Inactive{% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('edit_exam', exam_id=exam.id) }}" class="btn btn-outline-primary">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    <button class="btn btn-outline-info" onclick="viewExamStats({{ exam.id }})">
+                                        <i class="fas fa-chart-bar"></i> Stats
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-clipboard-check fa-4x text-muted mb-4"></i>
+                <h4>No Exams Created</h4>
+                <p class="text-muted">Create your first MCQ exam to assess candidate skills.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function viewExamStats(examId) {
+    // Implement exam statistics view
+    alert('Exam statistics feature coming soon!');
+}
+</script>
+{% endblock %}

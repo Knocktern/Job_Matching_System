@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}{{ user.first_name }} {{ user.last_name }} - Profile{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h4>{{ user.first_name }} {{ user.last_name }}'s Profile</h4>
+                <a href="{{ url_for('employer_dashboard') }}" class="btn btn-light">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+        
+        <div class="card-body">
+            <!-- Personal Information -->
+            <div class="mb-4">
+                <h5><i class="fas fa-user"></i> Personal Information</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Email:</strong> {{ user.email }}</p>
+                        <p><strong>Phone:</strong> {{ user.phone or 'Not provided' }}</p>
+                        <p><strong>Location:</strong> {{ candidate.location or 'Not provided' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Current Position:</strong> {{ candidate.current_position or 'Not provided' }}</p>
+                        <p><strong>Experience:</strong> {{ candidate.experience_years }} years</p>
+                        <p><strong>Education:</strong> {{ candidate.education_level or 'Not provided' }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- CV Section -->
+            <div class="mb-4">
+                <h5><i class="fas fa-file-pdf"></i> Curriculum Vitae</h5>
+                {% if candidate.cv_content %}
+                <div class="alert alert-success">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-file-pdf fa-2x text-danger me-3"></i>
+                            <span><strong>CV Available:</strong> {{ candidate.cv_filename or 'CV Document' }}</span>
+                            <br><small class="text-muted">Stored in database • Updated: {{ candidate.updated_at.strftime('%Y-%m-%d') }}</small>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('download_cv_from_db', candidate_id=candidate.id) }}" 
+                               class="btn btn-primary">
+                                <i class="fas fa-download"></i> Download CV
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> No CV uploaded by this candidate
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Professional Summary -->
+            <div class="mb-4">
+                <h5><i class="fas fa-file-alt"></i> Professional Summary</h5>
+                <p>{{ candidate.summary or 'No summary provided' }}</p>
+            </div>
+            
+            <!-- Skills & Expertise -->
+            <div class="mb-4">
+                <h5><i class="fas fa-cogs"></i> Skills & Expertise</h5>
+                {% if skills %}
+                <div class="row">
+                    {% for skill_rel, skill in skills %}
+                    <div class="col-md-3 mb-2">
+                        <span class="badge bg-{% if skill_rel.proficiency_level == 'Expert' %}success{% elif skill_rel.proficiency_level == 'Advanced' %}info{% elif skill_rel.proficiency_level == 'Intermediate' %}warning{% else %}secondary{% endif %} p-2">
+                            {{ skill.skill_name }}
+                            <br><small>{{ skill_rel.proficiency_level }}</small>
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted">No skills added</p>
+                {% endif %}
+            </div>
+            
+            <!-- Salary Expectation -->
+            {% if candidate.salary_expectation %}
+            <div class="mb-4">
+                <h5><i class="fas fa-dollar-sign"></i> Salary Expectation</h5>
+                <p class="h6 text-success">${{ "{:,.0f}".format(candidate.salary_expectation) }} annually</p>
+            </div>
+            {% endif %}
+            
+            <!-- Applications to Current Company -->
+            <div class="mb-4">
+                <h5><i class="fas fa-briefcase"></i> Applications to Your Company</h5>
+                {% if applications %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Job Title</th>
+                                <th>Status</th>
+                                <th>Applied Date</th>
+                                <th>Exam Score</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for application, job in applications %}
+                            <tr>
+                                <td>{{ job.title }}</td>
+                                <td>
+                                    <span class="badge bg-{% if application.application_status == 'hired' %}success{% elif application.application_status == 'rejected' %}danger{% elif application.application_status == 'shortlisted' %}info{% elif application.application_status == 'interview_scheduled' %}warning{% else %}secondary{% endif %}">
+                                        {{ application.application_status.replace('_', ' ').title() }}
+                                    </span>
+                                </td>
+                                <td>{{ application.applied_at.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    {% if application.exam_score %}
+                                        <span class="badge bg-{% if application.exam_score >= 70 %}success{% elif application.exam_score >= 50 %}warning{% else %}danger{% endif %}">
+                                            {{ application.exam_score }}%
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-success" onclick="updateStatus({{ application.id }}, 'shortlisted')">Shortlist</button>
+                                        <button class="btn btn-outline-warning" onclick="updateStatus({{ application.id }}, 'interview_scheduled')">Interview</button>
+                                        <button class="btn btn-outline-danger" onclick="updateStatus({{ application.id }}, 'rejected')">Reject</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">This candidate hasn't applied to any positions at your company</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateStatus(applicationId, status) {
+    if (confirm(`Are you sure you want to ${status.replace('_', ' ')} this application?`)) {
+        fetch(`/application/${applicationId}/status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({status: status})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error updating status: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error updating status');
+        });
+    }
+}
+</script>
+{% endblock %}

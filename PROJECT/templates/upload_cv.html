@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Upload CV - JobMatch Pro{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-upload"></i> Upload Your CV/Resume</h4>
+                </div>
+                <div class="card-body">
+                    {% if profile.cv_file_path %}
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle"></i> Current CV</h6>
+                        <p class="mb-2">You have already uploaded: <strong>{{ profile.cv_file_path }}</strong></p>
+                        <p class="mb-0">Upload a new file to replace the current one.</p>
+                    </div>
+                    {% endif %}
+
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="cv_file" class="form-label">Select CV/Resume File</label>
+                            <input type="file" class="form-control" id="cv_file" name="cv_file" accept=".pdf,.doc,.docx" required>
+                            <div class="form-text">Accepted formats: PDF, DOC, DOCX (Max size: 16MB)</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="alert alert-warning">
+                                <h6><i class="fas fa-exclamation-triangle"></i> Important Tips:</h6>
+                                <ul class="mb-0">
+                                    <li>Ensure your CV is up-to-date with your latest experience</li>
+                                    <li>Include relevant skills and certifications</li>
+                                    <li>Use a professional format and clear structure</li>
+                                    <li>Keep file size under 16MB</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-upload"></i> Upload CV
+                            </button>
+                            <a href="{{ url_for('candidate_dashboard') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Dashboard
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

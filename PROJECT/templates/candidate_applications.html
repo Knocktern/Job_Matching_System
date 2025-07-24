@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+
+{% block title %}My Applications - JobMatch Pro{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 sidebar">
+            <div class="p-3">
+                <h5 class="text-center mb-4">
+                    <i class="fas fa-user-circle me-2"></i>{{ user.first_name }}
+                </h5>
+                <nav class="nav flex-column">
+                    <a class="nav-link" href="{{ url_for('candidate_dashboard') }}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="{{ url_for('candidate_profile') }}">
+                        <i class="fas fa-user-edit me-2"></i>Edit Profile
+                    </a>
+                    <a class="nav-link active" href="{{ url_for('candidate_applications') }}">
+                        <i class="fas fa-file-alt me-2"></i>My Applications
+                    </a>
+                    <a class="nav-link" href="{{ url_for('candidate_recommendations') }}">
+                        <i class="fas fa-star me-2"></i>Job Recommendations
+                    </a>
+                    <a class="nav-link" href="{{ url_for('candidate_skill_analysis') }}">
+                        <i class="fas fa-chart-line me-2"></i>Skill Analysis
+                    </a>
+                </nav>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 main-content">
+            <!-- Header -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h2><i class="fas fa-file-alt me-2"></i>My Job Applications</h2>
+                        <a href="{{ url_for('browse_jobs') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Apply to More Jobs
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Applications Summary -->
+            <div class="row mb-4">
+                {% set total_apps = applications|length %}
+                {% set applied_count = applications|selectattr('0.application_status', 'equalto', 'applied')|list|length %}
+                {% set under_review_count = applications|selectattr('0.application_status', 'equalto', 'under_review')|list|length %}
+                {% set shortlisted_count = applications|selectattr('0.application_status', 'equalto', 'shortlisted')|list|length %}
+                {% set hired_count = applications|selectattr('0.application_status', 'equalto', 'hired')|list|length %}
+                
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3>{{ total_apps }}</h3>
+                                <p class="mb-0">Total Applications</p>
+                            </div>
+                            <i class="fas fa-file-alt fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card" style="background: linear-gradient(135deg, #f39c12, #f7dc6f);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3>{{ under_review_count }}</h3>
+                                <p class="mb-0">Under Review</p>
+                            </div>
+                            <i class="fas fa-clock fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card" style="background: linear-gradient(135deg, #3498db, #85c1e9);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3>{{ shortlisted_count }}</h3>
+                                <p class="mb-0">Shortlisted</p>
+                            </div>
+                            <i class="fas fa-star fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card" style="background: linear-gradient(135deg, #27ae60, #58d68d);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3>{{ hired_count }}</h3>
+                                <p class="mb-0">Hired</p>
+                            </div>
+                            <i class="fas fa-trophy fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Applications List -->
+            <div class="row">
+                <div class="col-12">
+                    {% if applications %}
+                        {% for application, job, company in applications %}
+                        <div class="card mb-4 application-card">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <div>
+                                                <h5 class="mb-1">{{ job.title }}</h5>
+                                                <h6 class="text-muted mb-2">
+                                                    <i class="fas fa-building me-1"></i>{{ company.company_name }}
+                                                </h6>
+                                            </div>
+                                            <span class="badge bg-{{ 'success' if application.application_status == 'hired' else 'primary' if application.application_status == 'shortlisted' else 'warning' if application.application_status == 'under_review' else 'info' if application.application_status == 'interview_scheduled' else 'danger' if application.application_status == 'rejected' else 'secondary' }} fs-6">
+                                                {{ application.application_status.replace('_', ' ').title() }}
+                                            </span>
+                                        </div>
+                                        
+                                        <div class="row mb-3">
+                                            <div class="col-sm-6">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-map-marker-alt me-1"></i>{{ job.location or 'Location not specified' }}
+                                                </small>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-clock me-1"></i>{{ job.job_type or 'Not specified' }}
+                                                </small>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row mb-3">
+                                            <div class="col-sm-6">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-calendar-alt me-1"></i>Applied: {{ application.applied_at.strftime('%b %d, %Y') }}
+                                                </small>
+                                            </div>
+                                            {% if application.exam_score %}
+                                            <div class="col-sm-6">
+                                                <small class="text-success">
+                                                    <i class="fas fa-chart-line me-1"></i>Exam Score: {{ "%.1f"|format(application.exam_score) }}%
+                                                </small>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        {% if application.cover_letter %}
+                                        <div class="mb-3">
+                                            <small class="text-muted">
+                                                <strong>Cover Letter:</strong> 
+                                                {{ application.cover_letter[:150] }}{% if application.cover_letter|length > 150 %}...{% endif %}
+                                            </small>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="col-md-4">
+                                        <div class="d-flex flex-column h-100 justify-content-between">
+                                            <!-- Status Timeline -->
+                                            {% if application_histories[application.id] %}
+                                            <div class="mb-3">
+                                                <h6 class="small mb-2">Status History:</h6>
+                                                <div class="timeline-sm">
+                                                    {% for history in application_histories[application.id][:3] %}
+                                                    <div class="timeline-item">
+                                                        <div class="timeline-marker bg-{{ 'success' if history.new_status == 'hired' else 'primary' if history.new_status == 'shortlisted' else 'warning' if history.new_status == 'under_review' else 'info' }}"></div>
+                                                        <div class="timeline-content">
+                                                            <small class="fw-bold">{{ history.new_status.replace('_', ' ').title() }}</small>
+                                                            <br><small class="text-muted">{{ history.changed_at.strftime('%b %d, %H:%M') }}</small>
+                                                            {% if history.notes %}
+                                                            <br><small class="text-muted">{{ history.notes[:50] }}{% if history.notes|length > 50 %}...{% endif %}</small>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                            
+                                            <!-- Actions -->
+                                            <div>
+                                                <a href="{{ url_for('job_details', job_id=job.id) }}" class="btn btn-outline-primary btn-sm w-100 mb-2">
+                                                    <i class="fas fa-eye me-1"></i>View Job Details
+                                                </a>
+                                                
+                                                {% if application.application_status in ['applied', 'under_review'] %}
+                                                <button class="btn btn-outline-secondary btn-sm w-100 mb-2" onclick="withdrawApplication({{ application.id }})">
+                                                    <i class="fas fa-times me-1"></i>Withdraw Application
+                                                </button>
+                                                {% endif %}
+                                                
+                                                <button class="btn btn-outline-info btn-sm w-100" onclick="viewApplicationDetails({{ application.id }})">
+                                                    <i class="fas fa-info-circle me-1"></i>Full Details
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="card">
+                            <div class="card-body text-center py-5">
+                                <i class="fas fa-file-alt fa-4x text-muted mb-4"></i>
+                                <h4 class="text-muted">No Applications Yet</h4>
+                                <p class="text-muted mb-4">You haven't applied to any jobs yet. Start exploring opportunities!</p>
+                                <a href="{{ url_for('browse_jobs') }}" class="btn btn-primary">
+                                    <i class="fas fa-search me-2"></i>Browse Jobs
+                                </a>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Application Details Modal -->
+<div class="modal fade" id="applicationModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Application Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="applicationModalBody">
+                <!-- Content will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.application-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.application-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.timeline-sm {
+    position: relative;
+    padding-left: 20px;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 15px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -25px;
+    top: 2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.timeline-content {
+    font-size: 0.85rem;
+}
+
+.timeline-sm::before {
+    content: '';
+    position: absolute;
+    left: -21px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: #dee2e6;
+}
+</style>
+
+<script>
+function withdrawApplication(applicationId) {
+    if (confirm('Are you sure you want to withdraw this application? This action cannot be undone.')) {
+        // Implement withdrawal logic
+        alert('Withdrawal feature coming soon!');
+    }
+}
+
+function viewApplicationDetails(applicationId) {
+    // Load application details in modal
+    document.getElementById('applicationModalBody').innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    `;
+    
+    const modal = new bootstrap.Modal(document.getElementById('applicationModal'));
+    modal.show();
+    
+    // Simulate loading application details
+    setTimeout(() => {
+        document.getElementById('applicationModalBody').innerHTML = `
+            <p>Detailed application information would be loaded here...</p>
+            <p>This feature is coming soon!</p>
+        `;
+    }, 1000);
+}
+</script>
+{% endblock %}
