@@ -3,34 +3,73 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+from flask_wtf.csrf import CSRFProtect
 from datetime import datetime, timedelta
+from decimal import Decimal
 from io import BytesIO
 import os
 import json
 import csv
+import uuid
+import logging
 from sqlalchemy import func, text, and_, or_
+from functools import wraps
 
+# Initialize Flask app
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-change-this'
 
-# SQLAlchemy Database configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:sakibonlockdown@localhost:3306/job_matching_system'
+# Load configuration from environment variables or config file
+def load_config():
+    """Load configuration from environment variables or config.json"""
+    try:
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+        return config.get('params', {})
+    except FileNotFoundError:
+        return {}
+
+config_params = load_config()
+
+# Security configuration
+app.secret_key = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
+csrf = CSRFProtect(app)
+
+# Database configuration
+DB_HOST = os.environ.get('DB_HOST', 'localhost')
+DB_PORT = os.environ.get('DB_PORT', '3306')
+DB_USER = os.environ.get('DB_USER', 'root')
+DB_PASSWORD = os.environ.get('DB_PASSWORD', config_params.get('db-password', ''))
+DB_NAME = os.environ.get('DB_NAME', 'job_matching_system')
+
+app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_size': 10,
+    'pool_recycle': 120,
+    'pool_pre_ping': True
+}
 db = SQLAlchemy(app)
 
 # File upload configuration
-UPLOAD_FOLDER = 'static/uploads'
-ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx'}
+UPLOAD_FOLDER = os.path.join(app.root_path, 'static', 'uploads')
+ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'txt'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
+# Ensure upload directory exists
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 # Mail configuration
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
+app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'your-email@gmail.com'
-app.config['MAIL_PASSWORD'] = 'your-app-password'
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', config_params.get('gmail-user', ''))
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', config_params.get('gmail-password', ''))
 mail = Mail(app)
+
+# Logging configuration
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 @app.context_processor
 def inject_datetime():
@@ -40,7 +79,45 @@ def inject_datetime():
         'now': datetime.now()
     }
 
+# --- AUTHENTICATION DECORATORS ---
+def login_required(f):
+    """Decorator to require login for routes"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Please log in to access this page.', 'error')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
+def role_required(*roles):
+    """Decorator to require specific user roles"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if 'user_id' not in session:
+                flash('Please log in to access this page.', 'error')
+                return redirect(url_for('login'))
+            
+            user = User.query.get(session['user_id'])
+            if not user or user.user_type not in roles:
+                flash('You do not have permission to access this page.', 'error')
+                return redirect(url_for('dashboard'))
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+def admin_required(f):
+    """Decorator to require admin role"""
+    return role_required('admin')(f)
+
+def employer_required(f):
+    """Decorator to require employer role"""
+    return role_required('employer')(f)
+
+def candidate_required(f):
+    """Decorator to require candidate role"""
+    return role_required('candidate')(f)
 
 # --- MODELS ---
 class User(db.Model):
@@ -245,34 +322,72 @@ class ApplicationStatusHistory(db.Model):
 
 # --- UTILITY FUNCTIONS ---
 def allowed_file(filename):
+    """Check if uploaded file has allowed extension"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def sanitize_filename(filename):
+    """Sanitize uploaded filename"""
+    return secure_filename(filename)
+
+def generate_unique_filename(filename):
+    """Generate unique filename to prevent conflicts"""
+    ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+    unique_name = f"{uuid.uuid4().hex}.{ext}" if ext else uuid.uuid4().hex
+    return unique_name
 
 def create_notification(user_id, title, message, notification_type='system', action_url=None):
     """Create a new notification for a user"""
-    notification = Notification(
-        user_id=user_id,
-        title=title,
-        message=message,
-        notification_type=notification_type,
-        action_url=action_url
-    )
-    db.session.add(notification)
-    db.session.commit()
+    try:
+        notification = Notification(
+            user_id=user_id,
+            title=title,
+            message=message,
+            notification_type=notification_type,
+            action_url=action_url
+        )
+        db.session.add(notification)
+        db.session.commit()
+        logger.info(f"Notification created for user {user_id}: {title}")
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error creating notification: {str(e)}")
 
 def log_activity(table_name, operation_type, record_id, old_values=None, new_values=None, user_id=None):
     """Log activity for audit trail"""
-    activity = ActivityLog(
-        table_name=table_name,
-        operation_type=operation_type,
-        record_id=record_id,
-        old_values=json.dumps(old_values) if old_values else None,
-        new_values=json.dumps(new_values) if new_values else None,
-        user_id=user_id
-    )
-    db.session.add(activity)
-    db.session.commit()
+    try:
+        activity = ActivityLog(
+            table_name=table_name,
+            operation_type=operation_type,
+            record_id=record_id,
+            old_values=json.dumps(old_values) if old_values else None,
+            new_values=json.dumps(new_values) if new_values else None,
+            user_id=user_id
+        )
+        db.session.add(activity)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error logging activity: {str(e)}")
 
-from decimal import Decimal
+def send_email(to_email, subject, template, **kwargs):
+    """Send email notification"""
+    try:
+        if not app.config['MAIL_USERNAME']:
+            logger.warning("Email not configured, skipping email send")
+            return False
+        
+        msg = Message(
+            subject=subject,
+            recipients=[to_email],
+            sender=app.config['MAIL_USERNAME']
+        )
+        msg.html = render_template(template, **kwargs)
+        mail.send(msg)
+        logger.info(f"Email sent to {to_email}: {subject}")
+        return True
+    except Exception as e:
+        logger.error(f"Error sending email: {str(e)}")
+        return False
 
 def calculate_job_match_score(candidate_id, job_id):
     """Calculate match score between candidate and job"""
@@ -335,21 +450,29 @@ def calculate_job_match_score(candidate_id, job_id):
 
 @app.route('/')
 def index():
-    total_jobs = JobPosting.query.filter_by(is_active=True).count()
-    total_companies = Company.query.count()
-    total_candidates = CandidateProfile.query.count()
-    total_applications = JobApplication.query.count()
-    
-    recent_jobs = db.session.query(JobPosting, Company).join(Company).filter(
-        JobPosting.is_active == True
-    ).order_by(JobPosting.created_at.desc()).limit(6).all()
-    
-    return render_template('index.html',
-                         total_jobs=total_jobs,
-                         total_companies=total_companies,
-                         total_candidates=total_candidates,
-                         total_applications=total_applications,
-                         recent_jobs=recent_jobs)
+    try:
+        total_jobs = JobPosting.query.filter_by(is_active=True).count()
+        total_companies = Company.query.count()
+        total_candidates = CandidateProfile.query.count()
+        total_applications = JobApplication.query.count()
+        
+        recent_jobs = db.session.query(JobPosting, Company).join(Company).filter(
+            JobPosting.is_active == True
+        ).order_by(JobPosting.created_at.desc()).limit(6).all()
+        
+        return render_template('index.html',
+                             total_jobs=total_jobs,
+                             total_companies=total_companies,
+                             total_candidates=total_candidates,
+                             total_applications=total_applications,
+                             recent_jobs=recent_jobs)
+    except Exception as e:
+        logger.error(f"Error loading homepage: {str(e)}")
+        flash('Error loading page. Please try again.', 'error')
+        return render_template('index.html', 
+                             total_jobs=0, total_companies=0, 
+                             total_candidates=0, total_applications=0, 
+                             recent_jobs=[])
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -450,9 +573,8 @@ def logout():
 # --- CANDIDATE ROUTES ---
 
 @app.route('/candidate/dashboard')
+@candidate_required
 def candidate_dashboard():
-    if 'user_id' not in session or session['user_type'] != 'candidate':
-        return redirect(url_for('login'))
     
     user = User.query.get(session['user_id'])
     profile = user.candidate_profile
@@ -725,9 +847,8 @@ def candidate_skill_analysis():
 # --- EMPLOYER ROUTES ---
 
 @app.route('/employer/dashboard')
+@employer_required
 def employer_dashboard():
-    if 'user_id' not in session or session['user_type'] != 'employer':
-        return redirect(url_for('login'))
     
     user = User.query.get(session['user_id'])
     company = user.company
@@ -995,9 +1116,8 @@ def notify_matching_candidates(job_id):
 # --- ADMIN ROUTES ---
 
 @app.route('/admin/dashboard')
+@admin_required
 def admin_dashboard():
-    if 'user_id' not in session or session['user_type'] != 'admin':
-        return redirect(url_for('login'))
     
     # System statistics
     stats = {
@@ -1539,10 +1659,8 @@ def job_details(job_id):
 
 
 @app.route('/apply/<int:job_id>', methods=['GET', 'POST'])
+@candidate_required
 def apply_job(job_id):
-    if 'user_id' not in session or session['user_type'] != 'candidate':
-        flash('Please login as a candidate to apply', 'error')
-        return redirect(url_for('login'))
     
     user = User.query.get(session['user_id'])
     profile = user.candidate_profile
@@ -2070,7 +2188,55 @@ def mark_notification_read(notification_id):
     
     return redirect(url_for('notifications'))
 
+# --- ERROR HANDLERS ---
+@app.errorhandler(404)
+def not_found(error):
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    db.session.rollback()
+    logger.error(f"Internal server error: {str(error)}")
+    return render_template('500.html'), 500
+
+@app.errorhandler(403)
+def forbidden(error):
+    return render_template('403.html'), 403
+
+# --- CONTEXT PROCESSORS ---
+@app.context_processor
+def inject_notifications():
+    """Inject unread notifications count into all templates"""
+    if 'user_id' in session:
+        try:
+            unread_count = Notification.query.filter_by(
+                user_id=session['user_id'], is_read=False
+            ).count()
+            return {'unread_notifications_count': unread_count}
+        except Exception:
+            return {'unread_notifications_count': 0}
+    return {'unread_notifications_count': 0}
+
+# --- DATABASE INITIALIZATION ---
+def init_db():
+    """Initialize database tables"""
+    try:
+        with app.app_context():
+            db.create_all()
+            logger.info("Database tables created successfully")
+    except Exception as e:
+        logger.error(f"Error creating database tables: {str(e)}")
+
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    app.run(debug=True)
+    # Load environment variables if available
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except ImportError:
+        pass
+    
+    init_db()
+    
+    # Run application
+    debug_mode = os.environ.get('FLASK_DEBUG', 'True').lower() == 'true'
+    app.run(debug=debug_mode, host='0.0.0.0', port=5000)
