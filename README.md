@@ -1,46 +1,61 @@
-# Job Matching System - University Project
+**Multi Tenant Interview platform
+**🚀 Overview
+This is a sophisticated job matching platform that revolutionizes the recruitment process by intelligently connecting job seekers with employers. Built with Flask and MySQL, it features advanced skill-based matching, real-time interviews, and comprehensive analytics.
 
-## Overview
-This is a **Flask-based Job Matching System** developed as part of a university database management project.  
-It is designed to efficiently connect job seekers with employers by providing features like profile management, job posting, skill-based search, and automatic matching based on user preferences and job requirements.
+**✨ Features
+**👥 User Management
+Multi-role Authentication (Admin, Employer, Candidate, Interviewer, Manager)
+Secure Session Management with Flask-Login
+Password Encryption using Werkzeug security
+Email Notifications for all critical events
 
-The system leverages:
-- **Flask** for backend web framework
-- **MySQL** for database management
-- **Flask-Login** for authentication & user roles
-- **SQLAlchemy ORM** for database interactions
+**💼 Job Management
+**Smart Job Posting with skill requirements
+Advanced Search & Filtering (location, salary, experience)
+Application Tracking with status history
+Skill-based Matching Algorithm with scoring system
+Experience-based Filtering with minimum requirements
+Real-time Job Recommendations for candidates
 
----
 
-## Features
-- **Role-based Access**  
-  - **Admin**: Manage users, jobs, and oversee system activity  
-  - **Employer**: Post jobs, view applications, search for candidates  
-  - **Job Seeker**: Create profiles, upload resumes, browse and apply for jobs  
+**📊 Assessment System
+**MCQ Exam Engine with time tracking
+Automated Scoring with percentage calculation
+Exam Analytics with detailed reports
+Pass/Fail Determination based on configurable thresholds
 
-- **Job Posting & Management**  
-  - Employers can create, edit, and delete job postings.  
-  - Job seekers can search and apply for jobs easily.
+**🎥 Interview Platform
+**Real-time Video Rooms with unique codes
+Integrated Code Editor for technical interviews
+Interview Scheduling with calendar integration
+Feedback Collection
 
-- **Profile Management**  
-  - Job seekers can maintain skill sets and experience information.  
-  - Employers can maintain company profiles.
+**📈 Analytics Dashboard
+**System Statistics for administrators
+Employer Analytics with application trends
+Candidate Insights with skill gap analysis
+Export Capabilities (CSV, PDF)
 
-- **Matching Algorithm**  
-  - Automatically suggests jobs to seekers based on skills and preferences.  
-  - Suggests best-fit candidates for employers based on job criteria.
+**🛠️ Tech Stack
+**Backend
+Flask 2.3.2 - Web framework
+SQLAlchemy 2.0 - ORM and database toolkit
+MySQL 8.0 - Primary database
+Werkzeug - Password hashing and security
+Flask-Mail - Email services
+Frontend
+Bootstrap 5 - Responsive UI framework
+jQuery 3.6 - JavaScript library
+Font Awesome - Icons
+Development Tools
+Python 3.9+ - Programming language
+pip - Package manager
+📋 Prerequisites
+Python 3.9 or higher
+MySQL Server 8.0+
 
-- **Search & Filters**  
-  - Advanced filtering options by location, experience, skill, and salary.
 
----
+**👨‍💻 Author
+**Knocktern- https://github.com/Knocktern
 
-## Tech Stack
-- **Backend**: Python (Flask)  
-- **Database**: MySQL  
-- **ORM**: SQLAlchemy  
-- **Authentication**: Flask-Login  
-- **Frontend**: HTML, CSS, Bootstrap  
-
----
 
