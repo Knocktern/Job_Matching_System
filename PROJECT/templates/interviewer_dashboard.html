@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Interviewer Dashboard - JobMatch Pro{% endblock %}
+
+{% block content %}
+<div class="container-fluid my-4">
+    <div class="row">
+        <div class="col-12">
+            <h2>Welcome back, {{ user.first_name }}!</h2>
+            <p class="text-muted">Manage your interview schedule and provide feedback</p>
+        </div>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5>{{ upcoming_interviews|length }}</h5>
+                    <p>Upcoming Interviews</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5>{{ completed_interviews|length }}</h5>
+                    <p>Completed Interviews</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Upcoming Interviews -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Upcoming Interviews</h5>
+                </div>
+                <div class="card-body">
+                    {% if upcoming_interviews %}
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Job Title</th>
+                                        <th>Company</th>
+                                        <th>Scheduled Time</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for room, application, job, company in upcoming_interviews %}
+                                    <tr>
+                                        <td>{{ job.title }}</td>
+                                        <td>{{ company.company_name }}</td>
+                                        <td>{{ room.scheduled_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ 'warning' if room.status == 'scheduled' else 'primary' }}">
+                                                {{ room.status.title() }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('join_interview', room_code=room.room_code) }}" 
+                                               class="btn btn-sm btn-primary">
+                                                <i class="fas fa-video"></i> Join
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No upcoming interviews scheduled.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Completed -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6>Recent Completed</h6>
+                </div>
+                <div class="card-body">
+                    {% if completed_interviews %}
+                        {% for room, application, job, company in completed_interviews %}
+                        <div class="mb-3 p-2 border rounded">
+                            <h6 class="mb-1">{{ job.title }}</h6>
+                            <small class="text-muted">{{ company.company_name }}</small><br>
+                            <small class="text-muted">{{ room.ended_at.strftime('%Y-%m-%d') if room.ended_at }}</small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No completed interviews yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

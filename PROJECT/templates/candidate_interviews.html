@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}My Interviews - JobMatch Pro{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row">
+        <div class="col-12">
+            <h2>My Interviews</h2>
+            <p class="text-muted">Manage your scheduled interviews and join interview rooms</p>
+        </div>
+    </div>
+    
+    <!-- Upcoming Interviews -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Upcoming Interviews</h5>
+                </div>
+                <div class="card-body">
+                    {% if upcoming_interviews %}
+                        {% for room, application, job, company in upcoming_interviews %}
+                        <div class="interview-card mb-4 p-4 border rounded">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h5>{{ job.title }}</h5>
+                                    <p class="text-muted mb-2">{{ company.company_name }}</p>
+                                    <div class="interview-details">
+                                        <p class="mb-1">
+                                            <i class="fas fa-calendar text-primary me-2"></i>
+                                            <strong>{{ room.scheduled_time.strftime('%A, %B %d, %Y') }}</strong>
+                                        </p>
+                                        <p class="mb-1">
+                                            <i class="fas fa-clock text-info me-2"></i>
+                                            {{ room.scheduled_time.strftime('%I:%M %p') }} ({{ room.duration_minutes }} minutes)
+                                        </p>
+                                        <p class="mb-1">
+                                            <i class="fas fa-code text-warning me-2"></i>
+                                            Room Code: <code>{{ room.room_code }}</code>
+                                        </p>
+                                        <p class="mb-0">
+                                            <i class="fas fa-info-circle text-secondary me-2"></i>
+                                            Status: <span class="badge bg-primary">{{ room.status.title() }}</span>
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    {% set time_until = (room.scheduled_time - now).total_seconds() %}
+                                    {% if time_until <= 3600 and time_until >= -1800 %}
+                                        <!-- Can join if within 1 hour before to 30 minutes after -->
+                                        <a href="{{ url_for('join_interview', room_code=room.room_code) }}" 
+                                           class="btn btn-success btn-lg mb-2">
+                                            <i class="fas fa-video"></i> Join Interview
+                                        </a>
+                                        <br>
+                                        <small class="text-success">Ready to join</small>
+                                    {% elif time_until > 3600 %}
+                                        <!-- Too early -->
+                                        <button class="btn btn-outline-primary btn-lg mb-2" disabled>
+                                            <i class="fas fa-hourglass-half"></i> Not Ready
+                                        </button>
+                                        <br>
+                                        <small class="text-info">Available 1 hour before</small>
+                                    {% else %}
+                                        <!-- Too late -->
+                                        <button class="btn btn-outline-secondary btn-lg mb-2" disabled>
+                                            <i class="fas fa-clock"></i> Interview Ended
+                                        </button>
+                                        <br>
+                                        <small class="text-muted">Contact employer if needed</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-video fa-4x text-muted mb-3"></i>
+                            <h5>No Upcoming Interviews</h5>
+                            <p class="text-muted">Your scheduled interviews will appear here when employers set them up.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Past Interviews -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Interview History</h5>
+                </div>
+                <div class="card-body">
+                    {% if past_interviews %}
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Job Title</th>
+                                        <th>Company</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                        <th>Feedback</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for room, application, job, company in past_interviews %}
+                                    <tr>
+                                        <td>{{ job.title }}</td>
+                                        <td>{{ company.company_name }}</td>
+                                        <td>{{ room.scheduled_time.strftime('%Y-%m-%d %I:%M %p') }}</td>
+                                        <td>
+                                            <span class="badge bg-success">{{ room.status.title() }}</span>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">Available after completion</small>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No interview history yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-refresh page every 2 minutes to update interview status
+setInterval(function() {
+    location.reload();
+}, 2 * 60 * 1000);
+
+// Show countdown timer for upcoming interviews
+document.addEventListener('DOMContentLoaded', function() {
+    const interviewCards = document.querySelectorAll('.interview-card');
+    
+    interviewCards.forEach(card => {
+        // You can add countdown timers here if needed
+    });
+});
+</script>
+{% endblock %}

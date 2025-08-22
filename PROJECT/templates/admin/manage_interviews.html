@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Interviews - JobMatch Pro{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h4><i class="fas fa-calendar-alt me-2"></i>Manage Interviews</h4>
+                        </div>
+                        <div class="col-auto">
+                            <a href="{{ url_for('manager_dashboard') }}" class="btn btn-outline-primary">
+                                <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Filters -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <form method="GET" class="d-flex">
+                                <select name="status" class="form-select me-2" onchange="this.form.submit()">
+                                    <option value="">All Statuses</option>
+                                    <option value="scheduled" {{ 'selected' if status_filter == 'scheduled' }}>Scheduled</option>
+                                    <option value="active" {{ 'selected' if status_filter == 'active' }}>Active</option>
+                                    <option value="completed" {{ 'selected' if status_filter == 'completed' }}>Completed</option>
+                                    <option value="cancelled" {{ 'selected' if status_filter == 'cancelled' }}>Cancelled</option>
+                                </select>
+                                <button type="submit" class="btn btn-outline-primary">Filter</button>
+                            </form>
+                        </div>
+                        <div class="col-md-8 text-end">
+                            <span class="text-muted">Total: {{ interviews.total }} interviews</span>
+                        </div>
+                    </div>
+
+                    <!-- Interviews Table -->
+                    {% if interviews.items %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Room Code</th>
+                                    <th>Job Position</th>
+                                    <th>Candidate</th>
+                                    <th>Company</th>
+                                    <th>Scheduled Time</th>
+                                    <th>Duration</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for interview_room, application, job, company, candidate, user in interviews.items %}
+                                <tr>
+                                    <td>
+                                        <code>{{ interview_room.room_code }}</code>
+                                    </td>
+                                    <td>
+                                        <strong>{{ job.title }}</strong>
+                                    </td>
+                                    <td>
+                                        {{ user.first_name }} {{ user.last_name }}
+                                        <br><small class="text-muted">{{ user.email }}</small>
+                                    </td>
+                                    <td>{{ company.company_name }}</td>
+                                    <td>
+                                        <i class="fas fa-clock me-1"></i>
+                                        {{ interview_room.scheduled_time.strftime('%b %d, %Y') }}
+                                        <br><small class="text-muted">{{ interview_room.scheduled_time.strftime('%I:%M %p') }}</small>
+                                    </td>
+                                    <td>{{ interview_room.duration_minutes }} min</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if interview_room.status == 'scheduled' else 'primary' if interview_room.status == 'active' else 'secondary' if interview_room.status == 'completed' else 'warning' }}">
+                                            {{ interview_room.status.title() }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <!-- View/Join Interview -->
+                                            <a href="{{ url_for('join_interview', room_code=interview_room.room_code) }}" 
+                                               class="btn btn-sm btn-outline-primary" 
+                                               title="Join Interview">
+                                                <i class="fas fa-video"></i>
+                                            </a>
+                                            
+                                            <!-- Edit Interview -->
+                                            {% if interview_room.status != 'completed' %}
+                                            <a href="{{ url_for('edit_interview', interview_id=interview_room.id) }}" 
+                                               class="btn btn-sm btn-outline-warning" 
+                                               title="Edit Interview">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            {% endif %}
+                                            
+                                            <!-- Cancel Interview -->
+                                            {% if interview_room.status not in ['completed', 'cancelled'] %}
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-warning" 
+                                                    onclick="confirmCancel({{ interview_room.id }}, '{{ interview_room.room_code }}')"
+                                                    title="Cancel Interview">
+                                                <i class="fas fa-ban"></i>
+                                            </button>
+                                            {% endif %}
+                                            
+                                            <!-- Delete Interview -->
+                                            {% if interview_room.status != 'completed' %}
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-danger" 
+                                                    onclick="confirmDelete({{ interview_room.id }}, '{{ interview_room.room_code }}')"
+                                                    title="Delete Interview">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if interviews.pages > 1 %}
+                    <nav aria-label="Interview pagination">
+                        <ul class="pagination justify-content-center">
+                            {% if interviews.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('manage_interviews', page=interviews.prev_num, status=status_filter) }}">Previous</a>
+                                </li>
+                            {% endif %}
+                            
+                            {% for page_num in interviews.iter_pages() %}
+                                {% if page_num %}
+                                    {% if page_num != interviews.page %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('manage_interviews', page=page_num, status=status_filter) }}">{{ page_num }}</a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ page_num }}</span>
+                                        </li>
+                                    {% endif %}
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if interviews.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('manage_interviews', page=interviews.next_num, status=status_filter) }}">Next</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                        <h5>No interviews found</h5>
+                        <p class="text-muted">No interviews match your current filter criteria.</p>
+                        <a href="{{ url_for('manage_interviews') }}" class="btn btn-primary">View All Interviews</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Confirmation Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cancel Interview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to cancel interview <strong id="cancelRoomCode"></strong>?</p>
+                <p class="text-muted">This will notify all participants and set the status to cancelled.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep Interview</button>
+                <form id="cancelForm" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-warning">Cancel Interview</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Interview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong class="text-danger">Warning:</strong> Are you sure you want to permanently delete interview <strong id="deleteRoomCode"></strong>?</p>
+                <p class="text-muted">This action cannot be undone and will:</p>
+                <ul class="text-muted">
+                    <li>Permanently remove the interview record</li>
+                    <li>Delete all associated data (feedback, code sessions)</li>
+                    <li>Notify all participants of cancellation</li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep Interview</button>
+                <form id="deleteForm" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">Delete Permanently</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function confirmCancel(interviewId, roomCode) {
+    document.getElementById('cancelRoomCode').textContent = roomCode;
+    document.getElementById('cancelForm').action = `/admin/cancel_interview/${interviewId}`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('cancelModal'));
+    modal.show();
+}
+
+function confirmDelete(interviewId, roomCode) {
+    document.getElementById('deleteRoomCode').textContent = roomCode;
+    document.getElementById('deleteForm').action = `/admin/delete_interview/${interviewId}`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

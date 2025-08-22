@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Add Question - Manage Exam{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('employer_dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('employer_jobs') }}">Jobs</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('manage_job_exam', job_id=exam.job_id) }}">Exam</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('manage_exam_questions', exam_id=exam.id) }}">Questions</a></li>
+            <li class="breadcrumb-item active">Add Question</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-plus-circle"></i> Add Question to Exam: {{ exam.exam_title }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="form-group">
+                            <label for="question_text"><strong>Question Text *</strong></label>
+                            <textarea class="form-control" id="question_text" name="question_text" rows="4" 
+                                    placeholder="Enter your multiple choice question here..." required></textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="option_a"><strong>Option A *</strong></label>
+                                    <input type="text" class="form-control" id="option_a" name="option_a" 
+                                           placeholder="First option" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="option_b"><strong>Option B *</strong></label>
+                                    <input type="text" class="form-control" id="option_b" name="option_b" 
+                                           placeholder="Second option" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="option_c"><strong>Option C *</strong></label>
+                                    <input type="text" class="form-control" id="option_c" name="option_c" 
+                                           placeholder="Third option" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="option_d"><strong>Option D *</strong></label>
+                                    <input type="text" class="form-control" id="option_d" name="option_d" 
+                                           placeholder="Fourth option" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="correct_answer"><strong>Correct Answer *</strong></label>
+                            <select class="form-control" id="correct_answer" name="correct_answer" required>
+                                <option value="">Select the correct option</option>
+                                <option value="A">Option A</option>
+                                <option value="B">Option B</option>
+                                <option value="C">Option C</option>
+                                <option value="D">Option D</option>
+                            </select>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="points"><strong>Points *</strong></label>
+                                    <input type="number" class="form-control" id="points" name="points" 
+                                           value="1" min="1" max="10" required>
+                                    <small class="form-text text-muted">Points awarded for correct answer</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="difficulty_level"><strong>Difficulty Level *</strong></label>
+                                    <select class="form-control" id="difficulty_level" name="difficulty_level" required>
+                                        <option value="Easy">Easy</option>
+                                        <option value="Medium" selected>Medium</option>
+                                        <option value="Hard">Hard</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="category"><strong>Category</strong></label>
+                                    <input type="text" class="form-control" id="category" name="category" 
+                                           placeholder="e.g., Programming, Logic, Technical">
+                                    <small class="form-text text-muted">Optional: Group questions by topic</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+                        
+                        <div class="form-group text-center">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-save"></i> Add Question
+                            </button>
+                            <a href="{{ url_for('manage_exam_questions', exam_id=exam.id) }}" 
+                               class="btn btn-secondary btn-lg ml-2">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-focus on question text field
+    document.getElementById('question_text').focus();
+    
+    // Preview functionality (optional)
+    const questionText = document.getElementById('question_text');
+    const optionA = document.getElementById('option_a');
+    const optionB = document.getElementById('option_b');
+    const optionC = document.getElementById('option_c');
+    const optionD = document.getElementById('option_d');
+    const correctAnswer = document.getElementById('correct_answer');
+    
+    // Form validation
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        if (!questionText.value.trim()) {
+            alert('Please enter a question text');
+            e.preventDefault();
+            questionText.focus();
+            return false;
+        }
+        
+        if (!optionA.value.trim() || !optionB.value.trim() || 
+            !optionC.value.trim() || !optionD.value.trim()) {
+            alert('Please fill in all four options');
+            e.preventDefault();
+            return false;
+        }
+        
+        if (!correctAnswer.value) {
+            alert('Please select the correct answer');
+            e.preventDefault();
+            correctAnswer.focus();
+            return false;
+        }
+        
+        return confirm('Are you sure you want to add this question?');
+    });
+});
+</script>
+{% endblock %}

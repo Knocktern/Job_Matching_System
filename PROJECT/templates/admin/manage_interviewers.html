@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid">
+    <h2>Manage Interviewers</h2>
+    
+    <!-- Add New Interviewer Form -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Add New Interviewer</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" name="email" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-control" name="password" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">First Name</label>
+                            <input type="text" class="form-control" name="first_name" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Last Name</label>
+                            <input type="text" class="form-control" name="last_name" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Phone</label>
+                    <input type="text" class="form-control" name="phone">
+                </div>
+                <button type="submit" class="btn btn-primary">Add Interviewer</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Interviewers List -->
+    <div class="card">
+        <div class="card-header">
+            <h5>Current Interviewers</h5>
+        </div>
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Created</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for interviewer in interviewers %}
+                    <tr>
+                        <td>{{ interviewer.first_name }} {{ interviewer.last_name }}</td>
+                        <td>{{ interviewer.email }}</td>
+                        <td>{{ interviewer.phone or '-' }}</td>
+                        <td>{{ interviewer.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if interviewer.is_active else 'danger' }}">
+                                {{ 'Active' if interviewer.is_active else 'Inactive' }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,317 +1,345 @@
 {% extends "base.html" %}
 
-{% block title %}Candidate Dashboard - JobMatch Pro{% endblock %}
+{% block title %}Dashboard - JobMatch Pro{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid my-4">
     <div class="row">
-        <!-- Sidebar -->
-        <div class="col-md-3 col-lg-2 sidebar">
-            <div class="p-3">
-                <h5 class="text-center mb-4">
-                    <i class="fas fa-user-circle me-2"></i>{{ user.first_name }}
-                </h5>
-                <nav class="nav flex-column">
-                    <a class="nav-link active" href="{{ url_for('candidate_dashboard') }}">
-                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                    </a>
-                    <a class="nav-link" href="{{ url_for('candidate_profile') }}">
-                        <i class="fas fa-user-edit me-2"></i>Edit Profile
-                    </a>
-                    <a class="nav-link" href="{{ url_for('candidate_applications') }}">
-                        <i class="fas fa-file-alt me-2"></i>My Applications
-                    </a>
-                    <a class="nav-link" href="{{ url_for('candidate_recommendations') }}">
-                        <i class="fas fa-star me-2"></i>Job Recommendations
-                    </a>
-                    <a class="nav-link" href="{{ url_for('candidate_skill_analysis') }}">
-                        <i class="fas fa-chart-line me-2"></i>Skill Analysis
-                    </a>
-                    <a class="nav-link" href="{{ url_for('browse_jobs') }}">
-                        <i class="fas fa-search me-2"></i>Browse Jobs
-                    </a>
-                    <a class="nav-link" href="{{ url_for('messages') }}">
-                        <i class="fas fa-envelope me-2"></i>Messages
-                    </a>
-                </nav>
+        <div class="col-12">
+            <h2>Welcome back, {{ user.first_name }}!</h2>
+            <p class="text-muted">Here's your job search overview and latest updates.</p>
+        </div>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h3>{{ applications|length }}</h3>
+                    <p class="mb-0">Applications</p>
+                </div>
             </div>
         </div>
-        
-        <!-- Main Content -->
-        <div class="col-md-9 col-lg-10 main-content">
-            <!-- Welcome Section -->
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <h2 class="mb-3">
-                                <i class="fas fa-sun me-2 text-warning"></i>
-                                Welcome back, {{ user.first_name }}!
-                            </h2>
-                            <p class="text-muted mb-0">Here's your job search overview and latest updates.</p>
-                        </div>
-                    </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h3>{{ recommendations|length }}</h3>
+                    <p class="mb-0">Job Matches</p>
                 </div>
             </div>
-            
-            <!-- Statistics Cards -->
-            <div class="row mb-4">
-                <div class="col-md-3">
-                    <div class="stats-card">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h3>{{ applications|length }}</h3>
-                                <p class="mb-0">Applications</p>
-                            </div>
-                            <i class="fas fa-file-alt fa-2x opacity-75"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stats-card" style="background: linear-gradient(135deg, #27ae60, #58d68d);">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h3>{{ recommendations|length }}</h3>
-                                <p class="mb-0">Job Matches</p>
-                            </div>
-                            <i class="fas fa-star fa-2x opacity-75"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stats-card" style="background: linear-gradient(135deg, #f39c12, #f7dc6f);">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h3>{{ exam_invitations|length }}</h3>
-                                <p class="mb-0">Pending Exams</p>
-                            </div>
-                            <i class="fas fa-clipboard-check fa-2x opacity-75"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stats-card" style="background: linear-gradient(135deg, #e74c3c, #ec7063);">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h3>{{ notifications|length }}</h3>
-                                <p class="mb-0">New Alerts</p>
-                            </div>
-                            <i class="fas fa-bell fa-2x opacity-75"></i>
-                        </div>
-                    </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h3>{{ exam_invitations|length }}</h3>
+                    <p class="mb-0">Pending Exams</p>
                 </div>
             </div>
-            
-            <div class="row">
-                <!-- Recent Applications -->
-                <div class="col-lg-8">
-                    <div class="card mb-4">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">
-                                <i class="fas fa-file-alt me-2"></i>Recent Applications
-                            </h5>
-                            <a href="{{ url_for('candidate_applications') }}" class="btn btn-sm btn-outline-primary">
-                                View All
-                            </a>
-                        </div>
-                        <div class="card-body">
-                            {% if applications %}
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>Job Title</th>
-                                                <th>Company</th>
-                                                <th>Status</th>
-                                                <th>Applied Date</th>
-                                                <th>Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for application, job, company in applications %}
-                                            <tr>
-                                                <td>
-                                                    <strong>{{ job.title }}</strong>
-                                                    <br><small class="text-muted">{{ job.location }}</small>
-                                                </td>
-                                                <td>{{ company.company_name }}</td>
-                                                <td>
-                                                    <span class="badge bg-{{ 'success' if application.application_status == 'hired' else 'warning' if application.application_status == 'under_review' else 'info' if application.application_status == 'shortlisted' else 'secondary' }}">
-                                                        {{ application.application_status.replace('_', ' ').title() }}
-                                                    </span>
-                                                </td>
-                                                <td>{{ application.applied_at.strftime('%b %d, %Y') }}</td>
-                                                <td>
-                                                    <a href="{{ url_for('job_details', job_id=job.id) }}" class="btn btn-sm btn-outline-primary">
-                                                        <i class="fas fa-eye"></i>
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            {% else %}
-                                <div class="text-center py-4">
-                                    <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
-                                    <h5 class="text-muted">No applications yet</h5>
-                                    <p class="text-muted">Start applying to jobs that match your skills!</p>
-                                    <a href="{{ url_for('browse_jobs') }}" class="btn btn-primary">
-                                        <i class="fas fa-search me-2"></i>Browse Jobs
-                                    </a>
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    <!-- Job Recommendations -->
-                    <div class="card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">
-                                <i class="fas fa-star me-2"></i>Recommended Jobs
-                            </h5>
-                            <a href="{{ url_for('candidate_recommendations') }}" class="btn btn-sm btn-outline-primary">
-                                View All
-                            </a>
-                        </div>
-                        <div class="card-body">
-                            {% if recommendations %}
-                                {% for rec in recommendations[:3] %}
-                                <div class="border rounded p-3 mb-3">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div class="flex-grow-1">
-                                            <h6 class="mb-1">{{ rec.job.title }}</h6>
-                                            <p class="text-muted mb-2">
-                                                <i class="fas fa-building me-1"></i>{{ rec.company.company_name }}
-                                                <span class="ms-3">
-                                                    <i class="fas fa-map-marker-alt me-1"></i>{{ rec.job.location }}
-                                                </span>
-                                            </p>
-                                            <div class="d-flex align-items-center">
-                                                <span class="badge bg-success me-2">{{ rec.match_score }}% Match</span>
-                                                <small class="text-muted">{{ rec.job.job_type }}</small>
-                                            </div>
-                                        </div>
-                                        <div class="text-end">
-                                            <a href="{{ url_for('job_details', job_id=rec.job.id) }}" class="btn btn-sm btn-primary">
-                                                View Job
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            {% else %}
-                                <div class="text-center py-4">
-                                    <i class="fas fa-star fa-3x text-muted mb-3"></i>
-                                    <h5 class="text-muted">No recommendations yet</h5>
-                                    <p class="text-muted">Complete your profile to get personalized job recommendations!</p>
-                                    <a href="{{ url_for('candidate_profile') }}" class="btn btn-primary">
-                                        <i class="fas fa-user-edit me-2"></i>Complete Profile
-                                    </a>
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h3>{{ notifications|length }}</h3>
+                    <p class="mb-0">New Alerts</p>
                 </div>
-                
-                <!-- Sidebar Content -->
-                <div class="col-lg-4">
-                    <!-- Profile Completion -->
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-user-check me-2"></i>Profile Completion
-                            </h6>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Recent Applications -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5>Recent Applications</h5>
+                    <a href="{{ url_for('candidate_applications') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if applications %}
+                        {% for application, job, company in applications[:3] %}
+                        <div class="mb-3 p-3 border rounded">
+                            <h6 class="mb-1">{{ job.title }}</h6>
+                            <p class="text-muted mb-1">{{ company.company_name }}</p>
+                            <small class="text-info">Applied: {{ application.applied_at.strftime('%b %d, %Y') }}</small>
+                            <span class="badge bg-{{ 'success' if application.application_status == 'hired' else 'warning' if application.application_status in ['under_review', 'shortlisted'] else 'secondary' }} ms-2">
+                                {{ application.application_status.replace('_', ' ').title() }}
+                            </span>
                         </div>
-                        <div class="card-body">
-                            {% set completion = 0 %}
-                            {% if profile.experience_years %}{% set completion = completion + 20 %}{% endif %}
-                            {% if profile.education_level %}{% set completion = completion + 20 %}{% endif %}
-                            {% if profile.current_position %}{% set completion = completion + 20 %}{% endif %}
-                            {% if profile.location %}{% set completion = completion + 20 %}{% endif %}
-                            {% if profile.summary %}{% set completion = completion + 20 %}{% endif %}
-                            
-                            <div class="progress mb-3">
-                                <div class="progress-bar" role="progressbar" style="width: {{ completion }}%">
-                                    {{ completion }}%
-                                </div>
-                            </div>
-                            
-                            {% if completion < 100 %}
-                                <p class="small text-muted mb-2">Complete your profile to get better job matches:</p>
-                                <ul class="small">
-                                    {% if not profile.experience_years %}<li>Add experience years</li>{% endif %}
-                                    {% if not profile.education_level %}<li>Add education level</li>{% endif %}
-                                    {% if not profile.current_position %}<li>Add current position</li>{% endif %}
-                                    {% if not profile.location %}<li>Add location</li>{% endif %}
-                                    {% if not profile.summary %}<li>Add professional summary</li>{% endif %}
-                                </ul>
-                                <a href="{{ url_for('candidate_profile') }}" class="btn btn-sm btn-primary w-100">
-                                    Complete Profile
-                                </a>
-                            {% else %}
-                                <p class="text-success small mb-0">
-                                    <i class="fas fa-check-circle me-1"></i>Profile is complete!
-                                </p>
-                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-file-alt fa-2x text-muted mb-2"></i>
+                            <p class="text-muted">No applications yet</p>
+                            <small class="text-secondary">Start applying to jobs that match your skills!</small>
+                            <br>
+                            <a href="{{ url_for('browse_jobs') }}" class="btn btn-primary btn-sm mt-2">Browse Jobs</a>
                         </div>
-                    </div>
-                    
-                    <!-- Exam Invitations -->
-                    {% if exam_invitations %}
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-clipboard-check me-2"></i>Pending Exams
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            {% for exam, job, company in exam_invitations %}
-                            <div class="border rounded p-2 mb-2">
-                                <h6 class="mb-1">{{ exam.exam_title }}</h6>
-                                <p class="small text-muted mb-2">{{ job.title }} - {{ company.company_name }}</p>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <small>{{ exam.duration_minutes }} minutes</small>
-                                    <a href="{{ url_for('take_exam', exam_id=exam.id) }}" class="btn btn-sm btn-warning">
-                                        Take Exam
-                                    </a>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
                     {% endif %}
-                    
-                    <!-- Recent Notifications -->
-                    {% if notifications %}
-                    <div class="card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0">
-                                <i class="fas fa-bell me-2"></i>Recent Notifications
-                            </h6>
-                            <a href="{{ url_for('notifications') }}" class="btn btn-sm btn-outline-primary">
-                                View All
-                            </a>
-                        </div>
-                        <div class="card-body">
-                            {% for notification in notifications %}
-                            <div class="d-flex align-items-start mb-3">
-                                <div class="flex-shrink-0">
-                                    <i class="fas fa-{{ 'briefcase' if notification.notification_type == 'job_match' else 'file-alt' if notification.notification_type == 'application' else 'envelope' if notification.notification_type == 'message' else 'info-circle' }} text-primary"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recommended Jobs -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5>Recommended Jobs</h5>
+                    <a href="{{ url_for('candidate_recommendations') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if recommendations %}
+                        {% for rec in recommendations[:3] %}
+                        <div class="mb-3 p-3 border rounded">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">{{ rec.job.title }}</h6>
+                                    <p class="text-muted mb-1">{{ rec.company.company_name }}</p>
+                                    <small class="text-info">{{ rec.job.location }}</small>
                                 </div>
-                                <div class="flex-grow-1 ms-2">
-                                    <h6 class="mb-1 small">{{ notification.title }}</h6>
-                                    <p class="small text-muted mb-1">{{ notification.message }}</p>
-                                    <small class="text-muted">{{ notification.created_at.strftime('%b %d, %H:%M') }}</small>
-                                </div>
+                                <span class="badge bg-success">{{ rec.match_score }}% Match</span>
                             </div>
-                            {% endfor %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-star fa-2x text-muted mb-2"></i>
+                            <p class="text-muted">No recommendations yet</p>
+                            <small class="text-secondary">Complete your profile to get personalized job recommendations!</small>
+                            <br>
+                            <a href="{{ url_for('candidate_profile') }}" class="btn btn-primary btn-sm mt-2">Complete Profile</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Profile Completion -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6>Profile Completion</h6>
+                </div>
+                <div class="card-body">
+                    {% set completion = 0 %}
+                    {% if profile.experience_years %}{% set completion = completion + 20 %}{% endif %}
+                    {% if profile.education_level %}{% set completion = completion + 20 %}{% endif %}
+                    {% if profile.current_position %}{% set completion = completion + 20 %}{% endif %}
+                    {% if profile.location %}{% set completion = completion + 20 %}{% endif %}
+                    {% if profile.summary %}{% set completion = completion + 20 %}{% endif %}
+                    
+                    <div class="progress mb-3">
+                        <div class="progress-bar" role="progressbar" style="width: {{ completion }}%">
+                            {{ completion }}%
                         </div>
                     </div>
+                    
+                    {% if completion < 100 %}
+                        <p>Complete your profile to get better job matches:</p>
+                        <ul class="list-unstyled">
+                            {% if not profile.experience_years %}
+                                <li><i class="fas fa-circle text-danger me-2"></i>Add experience years</li>
+                            {% endif %}
+                            {% if not profile.education_level %}
+                                <li><i class="fas fa-circle text-danger me-2"></i>Add education level</li>
+                            {% endif %}
+                            {% if not profile.current_position %}
+                                <li><i class="fas fa-circle text-danger me-2"></i>Add current position</li>
+                            {% endif %}
+                            {% if not profile.location %}
+                                <li><i class="fas fa-circle text-danger me-2"></i>Add location</li>
+                            {% endif %}
+                            {% if not profile.summary %}
+                                <li><i class="fas fa-circle text-danger me-2"></i>Add professional summary</li>
+                            {% endif %}
+                        </ul>
+                        <a href="{{ url_for('candidate_profile') }}" class="btn btn-primary btn-sm">Update Profile</a>
+                    {% else %}
+                        <p class="text-success"><i class="fas fa-check-circle me-2"></i>Profile is complete!</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Upcoming Interviews -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6><i class="fas fa-video text-info me-2"></i>Upcoming Interviews</h6>
+                    <a href="{{ url_for('candidate_interviews') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if upcoming_interviews %}
+                        {% for room, application, job, company in upcoming_interviews[:2] %}
+                        <div class="interview-item mb-3 p-3 border rounded">
+                            <div class="row">
+                                <div class="col-8">
+                                    <h6 class="mb-1">{{ job.title }}</h6>
+                                    <p class="text-muted mb-1">{{ company.company_name }}</p>
+                                    <small class="text-info">
+                                        <i class="fas fa-calendar me-1"></i>
+                                        {{ room.scheduled_time.strftime('%b %d, %Y at %I:%M %p') }}
+                                    </small>
+                                </div>
+                                <div class="col-4 text-end">
+                                    {% set time_until = (room.scheduled_time - now).total_seconds() %}
+                                    {% if time_until <= 3600 and time_until > 0 %}
+                                        <a href="{{ url_for('join_interview', room_code=room.room_code) }}" 
+                                           class="btn btn-success btn-sm">
+                                            <i class="fas fa-video"></i> Join
+                                        </a>
+                                    {% elif time_until <= 0 %}
+                                        <small class="text-muted">In Progress</small>
+                                    {% else %}
+                                        <small class="text-info">
+                                            Available soon
+                                        </small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-video fa-2x text-muted mb-2"></i>
+                            <p class="text-muted">No upcoming interviews</p>
+                            <small class="text-secondary">When employers schedule interviews, they will appear here.</small>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Pending Exams -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6>Pending Exams</h6>
+                </div>
+                <div class="card-body">
+                    {% if exam_invitations %}
+                        {% for exam, job, company in exam_invitations[:3] %}
+                        <div class="mb-3 p-3 border rounded">
+                            <h6 class="mb-1">{{ exam.exam_title }}</h6>
+                            <p class="text-muted mb-1">{{ job.title }} - {{ company.company_name }}</p>
+                            <small class="text-info">Duration: {{ exam.duration_minutes }} minutes</small>
+                            <div class="mt-2">
+                                <a href="{{ url_for('take_exam', exam_id=exam.id) }}" class="btn btn-warning btn-sm">
+                                    <i class="fas fa-play"></i> Start Exam
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-clipboard-list fa-2x text-muted mb-2"></i>
+                            <p class="text-muted">No pending exams</p>
+                            <small class="text-secondary">Skill assessments will appear here when available.</small>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Notifications -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6>Recent Notifications</h6>
+                    <a href="{{ url_for('notifications') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if notifications %}
+                        {% for notification in notifications[:3] %}
+                        <div class="mb-3 p-2 border-start border-primary border-3">
+                            <h6 class="mb-1">{{ notification.title }}</h6>
+                            <p class="text-muted mb-1">{{ notification.message }}</p>
+                            <small class="text-info">{{ notification.created_at.strftime('%b %d, %H:%M') }}</small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-bell fa-2x text-muted mb-2"></i>
+                            <p class="text-muted">No new notifications</p>
+                        </div>
                     {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showInterviewDetails(roomCode, jobTitle, companyName, scheduledTime, duration) {
+    const modal = `
+        <div class="modal fade" id="interviewDetailsModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Interview Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <strong>Position:</strong> ${jobTitle}
+                        </div>
+                        <div class="mb-3">
+                            <strong>Company:</strong> ${companyName}
+                        </div>
+                        <div class="mb-3">
+                            <strong>Scheduled Time:</strong> ${scheduledTime}
+                        </div>
+                        <div class="mb-3">
+                            <strong>Duration:</strong> ${duration} minutes
+                        </div>
+                        <div class="mb-3">
+                            <strong>Room Code:</strong> <code>${roomCode}</code>
+                        </div>
+                        <div class="alert alert-info">
+                            <h6>What to expect:</h6>
+                            <ul class="mb-0">
+                                <li>Video conferencing with interviewer(s)</li>
+                                <li>Possible coding challenges with live collaboration</li>
+                                <li>Screen sharing capabilities</li>
+                                <li>Real-time chat functionality</li>
+                            </ul>
+                        </div>
+                        <div class="alert alert-warning">
+                            <strong>Join Instructions:</strong><br>
+                            The "Join Now" button will become available 1 hour before your scheduled interview time.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('interviewDetailsModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modal);
+    
+    // Show modal
+    const modalElement = new bootstrap.Modal(document.getElementById('interviewDetailsModal'));
+    modalElement.show();
+}
+
+// Auto-refresh page every 5 minutes to update interview status
+setInterval(function() {
+    location.reload();
+}, 5 * 60 * 1000);
+</script>
 {% endblock %}

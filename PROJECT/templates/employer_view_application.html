@@ -65,7 +65,7 @@
                                 <div class="col-md-8">
                                     <div class="d-flex align-items-center mb-3">
                                         <div class="avatar-circle me-3">
-                                            {{ user.first_name[0] }}{{ user.last_name[0] }}
+                                            {{ user.first_name[0] }}{{ user.last_name }}
                                         </div>
                                         <div>
                                             <h4 class="mb-1">{{ user.first_name }} {{ user.last_name }}</h4>
@@ -308,12 +308,8 @@
                                 </small>
                             </div>
                             
-                            <button class="btn btn-primary w-100 mb-2" onclick="updateApplicationStatus()">
+                            <button class="btn btn-primary w-100" onclick="updateApplicationStatus()">
                                 <i class="fas fa-edit me-2"></i>Update Status
-                            </button>
-                            
-                            <button class="btn btn-outline-info w-100" onclick="sendMessage()">
-                                <i class="fas fa-envelope me-2"></i>Message Candidate
                             </button>
                         </div>
                     </div>
@@ -346,7 +342,7 @@
                     {% endif %}
 
                     <!-- Quick Actions -->
-                    <div class="card">
+                    <div class="card mb-4">
                         <div class="card-header">
                             <h6 class="mb-0">
                                 <i class="fas fa-bolt me-2"></i>Quick Actions
@@ -355,9 +351,10 @@
                         <div class="card-body">
                             <div class="d-grid gap-2">
                                 {% if candidate.cv_filename %}
-                                <button class="btn btn-outline-primary" onclick="downloadCV()">
+                                <a class="btn btn-outline-primary" 
+                                   href="{{ url_for('download_cv', candidate_id=candidate.id) }}">
                                     <i class="fas fa-download me-2"></i>Download CV
-                                </button>
+                                </a>
                                 {% endif %}
                                 
                                 <button class="btn btn-outline-secondary" onclick="printApplication()">
@@ -367,15 +364,70 @@
                                 <button class="btn btn-outline-info" onclick="shareApplication()">
                                     <i class="fas fa-share me-2"></i>Share with Team
                                 </button>
-                                
-                                {% if application.application_status not in ['hired', 'rejected'] %}
-                                <button class="btn btn-outline-success" onclick="scheduleInterview()">
-                                    <i class="fas fa-calendar-plus me-2"></i>Schedule Interview
-                                </button>
-                                {% endif %}
                             </div>
                         </div>
                     </div>
+
+                    <!-- Interviewer Recommendation Section -->
+                    {% if available_interviewers %}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-user-tie me-2"></i>Recommend Interviewer
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <form action="{{ url_for('recommend_interviewer', application_id=application.id) }}" method="POST">
+                                <div class="mb-3">
+                                    <label for="interviewer_id" class="form-label">Select Interviewer</label>
+                                    <select class="form-select" id="interviewer_id" name="interviewer_id" required>
+                                        <option value="">Choose an interviewer...</option>
+                                        {% for interviewer in available_interviewers %}
+                                        <option value="{{ interviewer.id }}">{{ interviewer.first_name }} {{ interviewer.last_name }} ({{ interviewer.email }})</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="recommendation_notes" class="form-label">Notes (Optional)</label>
+                                    <textarea class="form-control" id="recommendation_notes" name="recommendation_notes" rows="3" 
+                                              placeholder="Add any notes about why you're recommending this interviewer..."></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="fas fa-paper-plane me-2"></i>Send Recommendation
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Existing Recommendations -->
+                    {% if interviewer_recommendations %}
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-history me-2"></i>Interviewer Recommendations
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            {% for recommendation in interviewer_recommendations %}
+                            <div class="recommendation-item mb-3 p-3 border rounded">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong>{{ recommendation.interviewer.first_name }} {{ recommendation.interviewer.last_name }}</strong>
+                                    <span class="badge bg-{{ 'success' if recommendation.status == 'accepted' else 'warning' if recommendation.status == 'pending' else 'danger' }}">
+                                        {{ recommendation.status.title() }}
+                                    </span>
+                                </div>
+                                <small class="text-muted">
+                                    Recommended on {{ recommendation.created_at.strftime('%B %d, %Y at %H:%M') }}
+                                </small>
+                                {% if recommendation.recommendation_notes %}
+                                <p class="mt-2 mb-0"><strong>Notes:</strong> {{ recommendation.recommendation_notes }}</p>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -499,24 +551,12 @@ function submitStatusUpdate() {
     document.getElementById('statusForm').submit();
 }
 
-function sendMessage() {
-    alert('Message feature coming soon!');
-}
-
-function downloadCV() {
-    alert('CV download feature coming soon!');
-}
-
 function printApplication() {
     window.print();
 }
 
 function shareApplication() {
     alert('Share feature coming soon!');
-}
-
-function scheduleInterview() {
-    alert('Interview scheduling feature coming soon!');
 }
 </script>
 {% endblock %}

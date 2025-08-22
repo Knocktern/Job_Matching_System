@@ -1,66 +1,49 @@
 {% extends "base.html" %}
-
 {% block title %}Post New Job - JobMatch Pro{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <div class="row">
-        <!-- Sidebar -->
-        <div class="col-md-3 col-lg-2 sidebar">
-            <div class="p-3">
-                <h5 class="text-center mb-4">
-                    <i class="fas fa-building me-2"></i>Post Job
-                </h5>
-                <nav class="nav flex-column">
-                    <a class="nav-link" href="{{ url_for('employer_dashboard') }}">
-                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                    </a>
-                    <a class="nav-link" href="{{ url_for('employer_jobs') }}">
-                        <i class="fas fa-briefcase me-2"></i>My Jobs
-                    </a>
-                    <a class="nav-link active" href="{{ url_for('create_job') }}">
-                        <i class="fas fa-plus me-2"></i>Post New Job
-                    </a>
-                    <a class="nav-link" href="{{ url_for('employer_applications') }}">
-                        <i class="fas fa-file-alt me-2"></i>Applications
-                    </a>
-                </nav>
-            </div>
-        </div>
-        
-        <!-- Main Content -->
-        <div class="col-md-9 col-lg-10 main-content">
-            <div class="row">
-                <div class="col-lg-8">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2><i class="fas fa-plus me-2"></i>Post a New Job</h2>
-                        <a href="{{ url_for('employer_jobs') }}" class="btn btn-outline-secondary">
-                            <i class="fas fa-arrow-left me-1"></i>Back to Jobs
-                        </a>
-                    </div>
-
-                    <form method="POST" id="jobForm">
-                        <!-- Basic Job Information -->
-                        <div class="card mb-4">
-                            <div class="card-header">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-info-circle me-2"></i>Basic Information
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <label for="title" class="form-label">Job Title *</label>
-                                    <input type="text" class="form-control" id="title" name="title" required
-                                           placeholder="e.g., Senior Software Engineer">
-                                    <div class="form-text">Be specific and use keywords that candidates might search for</div>
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-plus-circle"></i> Post New Job
+                    </h3>
+                </div>
+                
+                <form method="POST" action="{{ url_for('create_job') }}">
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Basic Job Information -->
+                            <div class="col-md-8">
+                                <div class="form-group">
+                                    <label for="title">Job Title *</label>
+                                    <input type="text" class="form-control" id="title" name="title" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="description">Job Description *</label>
+                                    <textarea class="form-control" id="description" name="description" rows="6" required></textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="requirements">Requirements</label>
+                                    <textarea class="form-control" id="requirements" name="requirements" rows="4"></textarea>
                                 </div>
                                 
                                 <div class="row">
                                     <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="job_type" class="form-label">Job Type *</label>
-                                            <select class="form-select" id="job_type" name="job_type" required>
-                                                <option value="">Select job type</option>
+                                        <div class="form-group">
+                                            <label for="location">Location</label>
+                                            <input type="text" class="form-control" id="location" name="location">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="job_type">Job Type *</label>
+                                            <select class="form-control" id="job_type" name="job_type" required>
+                                                <option value="">Select Job Type</option>
                                                 <option value="Full-time">Full-time</option>
                                                 <option value="Part-time">Part-time</option>
                                                 <option value="Contract">Contract</option>
@@ -68,368 +51,182 @@
                                             </select>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="location" class="form-label">Location</label>
-                                            <input type="text" class="form-control" id="location" name="location"
-                                                   placeholder="e.g., New York, NY or Remote">
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="experience_required">Experience Required (Years)</label>
+                                            <input type="number" class="form-control" id="experience_required" name="experience_required" min="0" value="0">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="salary_min">Minimum Salary</label>
+                                            <input type="number" class="form-control" id="salary_min" name="salary_min" min="0">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="salary_max">Maximum Salary</label>
+                                            <input type="number" class="form-control" id="salary_max" name="salary_max" min="0">
                                         </div>
                                     </div>
                                 </div>
                                 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="experience_required" class="form-label">Experience Required (Years)</label>
-                                            <select class="form-select" id="experience_required" name="experience_required">
-                                                <option value="0">Entry Level (0 years)</option>
-                                                {% for i in range(1, 16) %}
-                                                <option value="{{ i }}">{{ i }} year{{ 's' if i != 1 else '' }}</option>
-                                                {% endfor %}
-                                                <option value="15">15+ years</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="application_deadline" class="form-label">Application Deadline</label>
-                                            <input type="date" class="form-control" id="application_deadline" 
-                                                   name="application_deadline" min="{{ (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d') }}">
-                                        </div>
-                                    </div>
+                                <div class="form-group">
+                                    <label for="application_deadline">Application Deadline</label>
+                                    <input type="date" class="form-control" id="application_deadline" name="application_deadline">
                                 </div>
                             </div>
-                        </div>
-
-                        <!-- Salary Information -->
-                        <div class="card mb-4">
-                            <div class="card-header">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-dollar-sign me-2"></i>Compensation
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="salary_min" class="form-label">Minimum Salary (Annual)</label>
-                                            <div class="input-group">
-                                                <span class="input-group-text">$</span>
-                                                <input type="number" class="form-control" id="salary_min" name="salary_min"
-                                                       placeholder="50000" min="0" step="1000">
+                            
+                            <!-- Sidebar for Additional Options -->
+                            <div class="col-md-4">
+                                <!-- NEW: Exam Creation Section -->
+                                <div class="card mb-3">
+                                    <div class="card-header bg-info text-white">
+                                        <h5 class="mb-0">
+                                            <i class="fas fa-clipboard-check"></i> Create Exam (Optional)
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" id="create_exam" name="create_exam" onchange="toggleExamOptions()">
+                                            <label class="form-check-label" for="create_exam">
+                                                <strong>Create technical exam for this job</strong>
+                                            </label>
+                                        </div>
+                                        
+                                        <div id="exam_options" style="display: none;">
+                                            <div class="form-group">
+                                                <label for="exam_title">Exam Title</label>
+                                                <input type="text" class="form-control" id="exam_title" name="exam_title" placeholder="Auto-generated from job title">
                                             </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="salary_max" class="form-label">Maximum Salary (Annual)</label>
-                                            <div class="input-group">
-                                                <span class="input-group-text">$</span>
-                                                <input type="number" class="form-control" id="salary_max" name="salary_max"
-                                                       placeholder="80000" min="0" step="1000">
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="form-text">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    Salary ranges help attract qualified candidates and improve application quality
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Job Description -->
-                        <div class="card mb-4">
-                            <div class="card-header">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-file-alt me-2"></i>Job Description
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <label for="description" class="form-label">Job Description *</label>
-                                    <textarea class="form-control" id="description" name="description" rows="8" required
-                                              placeholder="Describe the role, responsibilities, and what makes this position exciting..."></textarea>
-                                    <div class="form-text">
-                                        Include key responsibilities, day-to-day tasks, and what success looks like in this role
-                                    </div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="requirements" class="form-label">Requirements & Qualifications</label>
-                                    <textarea class="form-control" id="requirements" name="requirements" rows="6"
-                                              placeholder="List the required qualifications, education, experience, and any specific requirements..."></textarea>
-                                    <div class="form-text">
-                                        Be specific about must-have vs. nice-to-have qualifications
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Required Skills -->
-                        <div class="card mb-4">
-                            <div class="card-header">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-cogs me-2"></i>Required Skills
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <label class="form-label">Select Required Skills</label>
-                                    <div class="row" id="skillsContainer">
-                                        {% set current_category = '' %}
-                                        {% for skill in skills %}
-                                            {% if skill.category != current_category %}
-                                                {% set current_category = skill.category %}
-                                                <div class="col-12">
-                                                    <h6 class="text-muted mt-3 mb-2">{{ skill.category or 'General' }}</h6>
-                                                </div>
-                                            {% endif %}
                                             
-                                            <div class="col-md-6 mb-2">
-                                                <div class="skill-item border rounded p-2">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" 
-                                                               name="required_skills[]" value="{{ skill.id }}" 
-                                                               id="skill_{{ skill.id }}"
-                                                               onchange="toggleSkillDetails({{ skill.id }})">
-                                                        <label class="form-check-label" for="skill_{{ skill.id }}">
-                                                            {{ skill.skill_name }}
-                                                        </label>
+                                            <div class="form-group">
+                                                <label for="exam_description">Exam Description</label>
+                                                <textarea class="form-control" id="exam_description" name="exam_description" rows="2"></textarea>
+                                            </div>
+                                            
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="form-group">
+                                                        <label for="exam_duration">Duration (minutes)</label>
+                                                        <input type="number" class="form-control" id="exam_duration" name="exam_duration" value="60" min="15" max="180">
                                                     </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="form-group">
+                                                        <label for="exam_passing_score">Passing Score (%)</label>
+                                                        <input type="number" class="form-control" id="exam_passing_score" name="exam_passing_score" value="60" min="0" max="100">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <small class="text-muted">
+                                                <i class="fas fa-info-circle"></i> 
+                                                You can add questions after creating the job.
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Skills Section -->
+                                <div class="card">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0">
+                                            <i class="fas fa-tools"></i> Required Skills
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-group">
+                                            <label>Select Skills</label>
+                                            <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ced4da; padding: 10px; border-radius: 4px;">
+                                                {% for skill in skills %}
+                                                <div class="form-check">
+                                                    <input class="form-check-input skill-checkbox" type="checkbox" 
+                                                           id="skill_{{ skill.id }}" name="required_skills[]" 
+                                                           value="{{ skill.id }}" onchange="toggleSkillOptions({{ skill.id }})">
+                                                    <label class="form-check-label" for="skill_{{ skill.id }}">
+                                                        <small class="text-muted">{{ skill.category or 'General' }}</small><br>
+                                                        {{ skill.skill_name }}
+                                                    </label>
                                                     
-                                                    <div class="skill-details mt-2" id="details_{{ skill.id }}" style="display: none;">
+                                                    <div id="skill_options_{{ skill.id }}" style="display: none; margin-left: 20px; margin-top: 5px;">
                                                         <div class="row">
-                                                            <div class="col-6">
-                                                                <select class="form-select form-select-sm" 
-                                                                        name="importance_{{ skill.id }}">
+                                                            <div class="col-md-6">
+                                                                <select class="form-control form-control-sm" name="importance_{{ skill.id }}">
                                                                     <option value="Required">Required</option>
                                                                     <option value="Preferred">Preferred</option>
                                                                     <option value="Nice to have">Nice to have</option>
                                                                 </select>
                                                             </div>
-                                                            <div class="col-6">
+                                                            <div class="col-md-6">
                                                                 <input type="number" class="form-control form-control-sm" 
-                                                                       name="min_years_{{ skill.id }}" 
-                                                                       value="0" min="0" max="20" 
-                                                                       placeholder="Min years">
+                                                                       name="min_years_{{ skill.id }}" placeholder="Min years" min="0" value="0">
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
+                                                {% endfor %}
                                             </div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                <div class="form-text">
-                                    <i class="fas fa-lightbulb me-1"></i>
-                                    Select skills that are essential for this role. This helps us match the right candidates.
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Submit Buttons -->
-                        <div class="card">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between">
-                                    <button type="button" class="btn btn-outline-secondary" onclick="saveDraft()">
-                                        <i class="fas fa-save me-2"></i>Save as Draft
-                                    </button>
-                                    <div>
-                                        <button type="button" class="btn btn-outline-primary me-2" onclick="previewJob()">
-                                            <i class="fas fa-eye me-2"></i>Preview
-                                        </button>
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="fas fa-paper-plane me-2"></i>Post Job
-                                        </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </form>
-                </div>
-
-                <!-- Sidebar Tips -->
-                <div class="col-lg-4">
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-lightbulb me-2"></i>Job Posting Tips
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="tip-item mb-3">
-                                <h6 class="text-primary">Write a Clear Title</h6>
-                                <small class="text-muted">Use specific job titles that candidates search for. Avoid internal jargon.</small>
-                            </div>
-                            <div class="tip-item mb-3">
-                                <h6 class="text-primary">Be Specific About Requirements</h6>
-                                <small class="text-muted">Clearly distinguish between must-have and nice-to-have qualifications.</small>
-                            </div>
-                            <div class="tip-item mb-3">
-                                <h6 class="text-primary">Include Salary Range</h6>
-                                <small class="text-muted">Jobs with salary ranges get 30% more applications.</small>
-                            </div>
-                            <div class="tip-item">
-                                <h6 class="text-primary">Highlight Company Culture</h6>
-                                <small class="text-muted">Mention what makes your company a great place to work.</small>
-                            </div>
-                        </div>
                     </div>
-
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-chart-line me-2"></i>Posting Performance
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="text-center">
-                                <div class="mb-2">
-                                    <span class="text-muted">Expected Applications</span>
-                                </div>
-                                <div class="display-6 text-primary" id="expectedApplications">--</div>
-                                <small class="text-muted">Based on similar jobs</small>
-                            </div>
-                        </div>
+                    
+                    <div class="card-footer">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> Post Job
+                        </button>
+                        <a href="{{ url_for('employer_jobs') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Cancel
+                        </a>
                     </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-clock me-2"></i>Quick Actions
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="d-grid gap-2">
-                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="loadTemplate()">
-                                    <i class="fas fa-file-import me-1"></i>Load Template
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="saveDraft()">
-                                    <i class="fas fa-save me-1"></i>Save Draft
-                                </button>
-                                <button type="button" class="btn btn-outline-info btn-sm" onclick="previewJob()">
-                                    <i class="fas fa-eye me-1"></i>Preview Job
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
 
-<style>
-.skill-item {
-    transition: background-color 0.2s;
-}
-
-.skill-item:hover {
-    background-color: #f8f9fa;
-}
-
-.skill-item .form-check-input:checked ~ .form-check-label {
-    font-weight: bold;
-    color: var(--primary-color);
-}
-
-.tip-item {
-    border-left: 3px solid var(--primary-color);
-    padding-left: 10px;
-}
-
-#expectedApplications {
-    font-weight: bold;
-}
-</style>
-
 <script>
-function toggleSkillDetails(skillId) {
-    const checkbox = document.getElementById(`skill_${skillId}`);
-    const details = document.getElementById(`details_${skillId}`);
+function toggleExamOptions() {
+    const checkbox = document.getElementById('create_exam');
+    const options = document.getElementById('exam_options');
+    const titleInput = document.getElementById('exam_title');
+    const jobTitle = document.getElementById('title').value;
     
     if (checkbox.checked) {
-        details.style.display = 'block';
+        options.style.display = 'block';
+        if (!titleInput.value && jobTitle) {
+            titleInput.value = jobTitle + ' - Technical Assessment';
+        }
     } else {
-        details.style.display = 'none';
-    }
-    
-    updateExpectedApplications();
-}
-
-function updateExpectedApplications() {
-    // Calculate expected applications based on form data
-    const selectedSkills = document.querySelectorAll('input[name="required_skills[]"]:checked').length;
-    const hasTitle = document.getElementById('title').value.length > 0;
-    const hasSalary = document.getElementById('salary_min').value || document.getElementById('salary_max').value;
-    
-    let expectedApps = 15; // Base number
-    
-    if (hasTitle) expectedApps += 10;
-    if (hasSalary) expectedApps += 15;
-    if (selectedSkills > 0) expectedApps += selectedSkills * 2;
-    
-    document.getElementById('expectedApplications').textContent = expectedApps;
-}
-
-function saveDraft() {
-    alert('Draft saved! (Feature coming soon)');
-}
-
-function previewJob() {
-    // Show preview modal or open preview page
-    alert('Preview functionality coming soon!');
-}
-
-function loadTemplate() {
-    if (confirm('Load a job template? This will replace current content.')) {
-        alert('Template loading feature coming soon!');
+        options.style.display = 'none';
     }
 }
 
-// Auto-save functionality
-let autoSaveTimer;
-function autoSave() {
-    clearTimeout(autoSaveTimer);
-    autoSaveTimer = setTimeout(() => {
-        console.log('Auto-saving job draft...');
-        // Implement auto-save functionality here
-    }, 30000); // Auto-save every 30 seconds
+function toggleSkillOptions(skillId) {
+    const checkbox = document.getElementById('skill_' + skillId);
+    const options = document.getElementById('skill_options_' + skillId);
+    
+    if (checkbox.checked) {
+        options.style.display = 'block';
+    } else {
+        options.style.display = 'none';
+    }
 }
 
-// Add event listeners for auto-save and expected applications update
-document.addEventListener('DOMContentLoaded', function() {
-    const formElements = document.querySelectorAll('input, textarea, select');
-    formElements.forEach(element => {
-        element.addEventListener('input', () => {
-            autoSave();
-            updateExpectedApplications();
-        });
-    });
+// Auto-update exam title when job title changes
+document.getElementById('title').addEventListener('input', function() {
+    const examTitle = document.getElementById('exam_title');
+    const createExam = document.getElementById('create_exam');
     
-    // Form validation
-    document.getElementById('jobForm').addEventListener('submit', function(e) {
-        const title = document.getElementById('title').value;
-        const description = document.getElementById('description').value;
-        const jobType = document.getElementById('job_type').value;
-        
-        if (!title || !description || !jobType) {
-            e.preventDefault();
-            alert('Please fill in all required fields');
-            return false;
-        }
-        
-        // Validate salary range
-        const salaryMin = parseFloat(document.getElementById('salary_min').value) || 0;
-        const salaryMax = parseFloat(document.getElementById('salary_max').value) || 0;
-        
-        if (salaryMin > 0 && salaryMax > 0 && salaryMin >= salaryMax) {
-            e.preventDefault();
-            alert('Maximum salary must be greater than minimum salary');
-            return false;
-        }
-    });
+    if (createExam.checked && !examTitle.value) {
+        examTitle.value = this.value + ' - Technical Assessment';
+    }
 });
 </script>
 {% endblock %}

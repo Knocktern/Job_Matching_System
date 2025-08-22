@@ -48,7 +48,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(255), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    user_type = db.Column(db.Enum('candidate', 'employer', 'admin'), nullable=False)
+    user_type = db.Column(db.Enum('candidate', 'employer', 'admin', 'interviewer', 'manager'), nullable=False)
     first_name = db.Column(db.String(100), nullable=False)
     last_name = db.Column(db.String(100), nullable=False)
     phone = db.Column(db.String(20))
@@ -59,6 +59,7 @@ class User(db.Model):
     
     candidate_profile = db.relationship('CandidateProfile', backref='user', uselist=False)
     company = db.relationship('Company', backref='user', uselist=False)
+
 
 class Company(db.Model):
     __tablename__ = 'companies'
@@ -224,14 +225,16 @@ class Notification(db.Model):
 
 class ActivityLog(db.Model):
     __tablename__ = 'activity_logs'
+    
     id = db.Column(db.Integer, primary_key=True)
     table_name = db.Column(db.String(50), nullable=False)
-    operation_type = db.Column(db.Enum('INSERT', 'UPDATE', 'DELETE'), nullable=False)
+    operation_type = db.Column(db.Enum('INSERT', 'UPDATE', 'DELETE', 'DOWNLOAD_CV'), nullable=False)  # Added 'DOWNLOAD_CV'
     record_id = db.Column(db.Integer, nullable=False)
-    old_values = db.Column(db.Text)  # JSON string
-    new_values = db.Column(db.Text)  # JSON string
+    old_values = db.Column(db.Text) # JSON string
+    new_values = db.Column(db.Text) # JSON string
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 class ApplicationStatusHistory(db.Model):
     __tablename__ = 'application_status_history'
@@ -242,6 +245,91 @@ class ApplicationStatusHistory(db.Model):
     changed_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     changed_at = db.Column(db.DateTime, default=datetime.utcnow)
     notes = db.Column(db.Text)
+
+
+#New models
+
+# Add these new models to main.py
+
+class InterviewRoom(db.Model):
+    __tablename__ = 'interview_rooms'
+    id = db.Column(db.Integer, primary_key=True)
+    room_name = db.Column(db.String(255), nullable=False)
+    room_code = db.Column(db.String(50), unique=True, nullable=False)
+    job_application_id = db.Column(db.Integer, db.ForeignKey('job_applications.id'), nullable=False)
+    scheduled_time = db.Column(db.DateTime, nullable=False)
+    duration_minutes = db.Column(db.Integer, default=60)
+    status = db.Column(db.Enum('scheduled', 'active', 'completed', 'cancelled'), default='scheduled')
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    started_at = db.Column(db.DateTime)
+    ended_at = db.Column(db.DateTime)
+    
+    application = db.relationship('JobApplication', backref='interview_room')
+    participants = db.relationship('InterviewParticipant', backref='room', lazy=True)
+    feedback = db.relationship('InterviewFeedback', backref='room', lazy=True)
+    code_sessions = db.relationship('CodeSession', backref='room', lazy=True)
+
+class InterviewParticipant(db.Model):
+    __tablename__ = 'interview_participants'
+    id = db.Column(db.Integer, primary_key=True)
+    room_id = db.Column(db.Integer, db.ForeignKey('interview_rooms.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    role = db.Column(db.Enum('candidate', 'interviewer', 'observer'), nullable=False)
+    joined_at = db.Column(db.DateTime)
+    left_at = db.Column(db.DateTime)
+    is_active = db.Column(db.Boolean, default=False)
+    
+    user = db.relationship('User', backref='interview_participations')
+
+class InterviewFeedback(db.Model):
+    __tablename__ = 'interview_feedback'
+    id = db.Column(db.Integer, primary_key=True)
+    room_id = db.Column(db.Integer, db.ForeignKey('interview_rooms.id'), nullable=False)
+    interviewer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    candidate_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    technical_score = db.Column(db.Integer)
+    communication_score = db.Column(db.Integer)
+    problem_solving_score = db.Column(db.Integer)
+    overall_rating = db.Column(db.Enum('excellent', 'good', 'average', 'poor'))
+    feedback_text = db.Column(db.Text)
+    recommendation = db.Column(db.Enum('hire', 'maybe', 'reject'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    interviewer = db.relationship('User', foreign_keys=[interviewer_id])
+    candidate = db.relationship('User', foreign_keys=[candidate_id])
+
+class CodeSession(db.Model):
+    __tablename__ = 'code_sessions'
+    id = db.Column(db.Integer, primary_key=True)
+    room_id = db.Column(db.Integer, db.ForeignKey('interview_rooms.id'), nullable=False)
+    session_name = db.Column(db.String(255), default='Coding Session')
+    language = db.Column(db.String(50), default='javascript')
+    code_content = db.Column(db.Text)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# Add this new model after the existing models in main.py
+
+class InterviewerRecommendation(db.Model):
+    __tablename__ = 'interviewer_recommendations'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    application_id = db.Column(db.Integer, db.ForeignKey('job_applications.id'), nullable=False)
+    recommended_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    interviewer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    recommendation_notes = db.Column(db.Text)
+    status = db.Column(db.Enum('pending', 'accepted', 'rejected', 'not_selected'), default='pending')  # UPDATED
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    application = db.relationship('JobApplication', backref='interviewer_recommendations')
+    recommender = db.relationship('User', foreign_keys=[recommended_by])
+    interviewer = db.relationship('User', foreign_keys=[interviewer_id])
+
+
 
 # --- UTILITY FUNCTIONS ---
 def allowed_file(filename):
@@ -335,6 +423,21 @@ def calculate_job_match_score(candidate_id, job_id):
 
 @app.route('/')
 def index():
+    # If user is logged in, redirect to their appropriate dashboard
+    if 'user_id' in session:
+        user_type = session.get('user_type')
+        if user_type == 'candidate':
+            return redirect(url_for('candidate_dashboard'))
+        elif user_type == 'employer':
+            return redirect(url_for('employer_dashboard'))
+        elif user_type == 'admin':
+            return redirect(url_for('admin_dashboard'))
+        elif user_type == 'manager':
+            return redirect(url_for('manager_dashboard'))
+        elif user_type == 'interviewer':
+            return redirect(url_for('interviewer_dashboard'))
+    
+    # For non-logged-in users, show the main landing page
     total_jobs = JobPosting.query.filter_by(is_active=True).count()
     total_companies = Company.query.count()
     total_candidates = CandidateProfile.query.count()
@@ -345,11 +448,12 @@ def index():
     ).order_by(JobPosting.created_at.desc()).limit(6).all()
     
     return render_template('index.html',
-                         total_jobs=total_jobs,
-                         total_companies=total_companies,
-                         total_candidates=total_candidates,
-                         total_applications=total_applications,
-                         recent_jobs=recent_jobs)
+                          total_jobs=total_jobs,
+                          total_companies=total_companies,
+                          total_candidates=total_candidates,
+                          total_applications=total_applications,
+                          recent_jobs=recent_jobs)
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -425,21 +529,27 @@ def login():
             session['user_name'] = f"{user.first_name} {user.last_name}"
             
             # Log activity
-            log_activity('users', 'UPDATE', user.id, 
+            log_activity('users', 'UPDATE', user.id,
                         old_values={'last_login': None},
                         new_values={'last_login': user.last_login.isoformat()},
                         user_id=user.id)
             
+            # Updated redirect logic for all user types
             if user.user_type == 'candidate':
                 return redirect(url_for('candidate_dashboard'))
             elif user.user_type == 'admin':
                 return redirect(url_for('admin_dashboard'))
-            else:
+            elif user.user_type == 'interviewer':
+                return redirect(url_for('interviewer_dashboard'))
+            elif user.user_type == 'manager':
+                return redirect(url_for('manager_dashboard'))
+            else:  # employer
                 return redirect(url_for('employer_dashboard'))
         else:
             flash('Invalid email or password', 'error')
     
     return render_template('login.html')
+
 
 @app.route('/logout')
 def logout():
@@ -453,10 +563,10 @@ def logout():
 def candidate_dashboard():
     if 'user_id' not in session or session['user_type'] != 'candidate':
         return redirect(url_for('login'))
-    
+
     user = User.query.get(session['user_id'])
     profile = user.candidate_profile
-    
+
     # Get recent applications
     applications = db.session.query(JobApplication, JobPosting, Company).join(
         JobPosting, JobApplication.job_id == JobPosting.id
@@ -465,15 +575,15 @@ def candidate_dashboard():
     ).filter(
         JobApplication.candidate_id == profile.id
     ).order_by(JobApplication.applied_at.desc()).limit(5).all()
-    
+
     # Get smart recommendations based on skills and experience
     recommendations = get_job_recommendations(profile.id)
-    
+
     # Get notifications
     notifications = Notification.query.filter_by(
         user_id=session['user_id'], is_read=False
     ).order_by(Notification.created_at.desc()).limit(5).all()
-    
+
     # Get exam invitations
     exam_invitations = db.session.query(MCQExam, JobPosting, Company).join(
         JobPosting, MCQExam.job_id == JobPosting.id
@@ -490,14 +600,29 @@ def candidate_dashboard():
             )
         )
     ).all()
-    
+
+    # ADD THIS: Get upcoming interviews for candidate
+    upcoming_interviews = db.session.query(InterviewRoom, JobApplication, JobPosting, Company).join(
+        JobApplication, InterviewRoom.job_application_id == JobApplication.id
+    ).join(
+        JobPosting, JobApplication.job_id == JobPosting.id
+    ).join(
+        Company, JobPosting.company_id == Company.id
+    ).filter(
+        JobApplication.candidate_id == profile.id,
+        InterviewRoom.status.in_(['scheduled', 'active']),
+        InterviewRoom.scheduled_time >= datetime.utcnow()
+    ).order_by(InterviewRoom.scheduled_time.asc()).all()
+
     return render_template('candidate_dashboard.html',
-                         user=user,
-                         profile=profile,
-                         applications=applications,
-                         recommendations=recommendations,
-                         notifications=notifications,
-                         exam_invitations=exam_invitations)
+                          user=user,
+                          profile=profile,
+                          applications=applications,
+                          recommendations=recommendations,
+                          notifications=notifications,
+                          exam_invitations=exam_invitations,
+                          upcoming_interviews=upcoming_interviews)  # ADD THIS
+
 
 def get_job_recommendations(candidate_id):
     """Get personalized job recommendations for a candidate"""
@@ -572,6 +697,34 @@ def candidate_profile():
             profile.salary_expectation = float(request.form['salary_expectation']) if request.form.get('salary_expectation') else None
             profile.summary = request.form.get('summary', '')
             
+            # CRITICAL FIX: Handle CV file upload
+            cv_file = request.files.get('cv_file')
+            if cv_file and cv_file.filename and allowed_file(cv_file.filename):
+                try:
+                    # Read file content as binary
+                    file_content = cv_file.read()
+                    
+                    # Save CV to database
+                    profile.cv_content = file_content
+                    profile.cv_filename = secure_filename(cv_file.filename)
+                    profile.cv_mimetype = cv_file.mimetype
+                    
+                    # Optional: Also save to file system
+                    if not os.path.exists(app.config['UPLOAD_FOLDER']):
+                        os.makedirs(app.config['UPLOAD_FOLDER'])
+                    
+                    filename = secure_filename(cv_file.filename)
+                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], f"cv_{profile.id}_{filename}")
+                    profile.cv_file_path = file_path
+                    
+                    # Reset file pointer and save to filesystem (optional)
+                    cv_file.seek(0)
+                    cv_file.save(file_path)
+                    
+                    flash('CV uploaded successfully!', 'success')
+                except Exception as e:
+                    flash(f'Error uploading CV: {str(e)}', 'warning')
+            
             # Handle skills
             selected_skills = request.form.getlist('skills[]')
             
@@ -582,6 +735,7 @@ def candidate_profile():
             for skill_id in selected_skills:
                 proficiency = request.form.get(f'proficiency_{skill_id}', 'Intermediate')
                 years_exp = int(request.form.get(f'years_{skill_id}', 0))
+                
                 candidate_skill = CandidateSkill(
                     candidate_id=profile.id,
                     skill_id=int(skill_id),
@@ -601,11 +755,12 @@ def candidate_profile():
                 'salary_expectation': float(profile.salary_expectation) if profile.salary_expectation else None,
                 'summary': profile.summary
             }
-            log_activity('candidate_profiles', 'UPDATE', profile.id, 
+            
+            log_activity('candidate_profiles', 'UPDATE', profile.id,
                         old_values=old_values, new_values=new_values, user_id=session['user_id'])
             
             # Create notification for profile update
-            create_notification(session['user_id'], 'Profile Updated', 
+            create_notification(session['user_id'], 'Profile Updated',
                               'Your profile has been successfully updated. Check your new job recommendations!',
                               'system', url_for('candidate_recommendations'))
             
@@ -621,6 +776,8 @@ def candidate_profile():
                          profile=profile,
                          available_skills=available_skills,
                          candidate_skills=candidate_skills)
+
+
 
 @app.route('/candidate/applications')
 def candidate_applications():
@@ -721,6 +878,47 @@ def candidate_skill_analysis():
                          candidate_skills=candidate_skills,
                          user=user,
                          profile=profile)
+
+
+@app.route('/candidate/interviews')
+def candidate_interviews():
+    if 'user_id' not in session or session['user_type'] != 'candidate':
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    profile = user.candidate_profile
+
+    # Get upcoming interviews
+    upcoming_interviews = db.session.query(InterviewRoom, JobApplication, JobPosting, Company).join(
+        JobApplication, InterviewRoom.job_application_id == JobApplication.id
+    ).join(
+        JobPosting, JobApplication.job_id == JobPosting.id
+    ).join(
+        Company, JobPosting.company_id == Company.id
+    ).filter(
+        JobApplication.candidate_id == profile.id,
+        InterviewRoom.status.in_(['scheduled', 'active']),
+        InterviewRoom.scheduled_time >= datetime.utcnow()
+    ).order_by(InterviewRoom.scheduled_time.asc()).all()
+
+    # Get past interviews
+    past_interviews = db.session.query(InterviewRoom, JobApplication, JobPosting, Company).join(
+        JobApplication, InterviewRoom.job_application_id == JobApplication.id
+    ).join(
+        JobPosting, JobApplication.job_id == JobPosting.id
+    ).join(
+        Company, JobPosting.company_id == Company.id
+    ).filter(
+        JobApplication.candidate_id == profile.id,
+        InterviewRoom.status == 'completed'
+    ).order_by(InterviewRoom.ended_at.desc()).limit(10).all()
+
+    return render_template('candidate_interviews.html',
+                          user=user,
+                          profile=profile,
+                          upcoming_interviews=upcoming_interviews,
+                          past_interviews=past_interviews)
+
 
 # --- EMPLOYER ROUTES ---
 
@@ -945,7 +1143,6 @@ def create_job():
             if skill_id:
                 importance = request.form.get(f'importance_{skill_id}', 'Required')
                 min_years = int(request.form.get(f'min_years_{skill_id}', 0))
-                
                 job_skill = JobRequiredSkill(
                     job_id=new_job.id,
                     skill_id=int(skill_id),
@@ -953,6 +1150,30 @@ def create_job():
                     min_years_experience=min_years
                 )
                 db.session.add(job_skill)
+        
+        # ADDED: Handle exam creation if requested
+        create_exam = request.form.get('create_exam') == 'on'
+        if create_exam:
+            exam_title = request.form.get('exam_title', f'{new_job.title} - Technical Assessment')
+            exam_description = request.form.get('exam_description', 'Technical assessment for this position')
+            duration_minutes = int(request.form.get('exam_duration', 60))
+            passing_score = float(request.form.get('exam_passing_score', 60.0))
+            
+            new_exam = MCQExam(
+                job_id=new_job.id,
+                exam_title=exam_title,
+                description=exam_description,
+                duration_minutes=duration_minutes,
+                passing_score=passing_score,
+                is_active=True
+            )
+            db.session.add(new_exam)
+            db.session.flush()
+            
+            # Log exam creation
+            log_activity('mcq_exams', 'INSERT', new_exam.id,
+                        new_values={'exam_title': exam_title, 'job_id': new_job.id},
+                        user_id=session['user_id'])
         
         db.session.commit()
         
@@ -964,13 +1185,18 @@ def create_job():
         # Notify matching candidates
         notify_matching_candidates(new_job.id)
         
-        flash('Job posted successfully!', 'success')
-        return redirect(url_for('employer_jobs'))
-        
+        if create_exam:
+            flash('Job posted successfully with exam! You can now add questions to the exam.', 'success')
+            return redirect(url_for('manage_exam_questions', exam_id=new_exam.id))
+        else:
+            flash('Job posted successfully!', 'success')
+            return redirect(url_for('employer_jobs'))
+            
     except Exception as e:
         db.session.rollback()
         flash(f'Error creating job: {str(e)}', 'error')
         return redirect(url_for('create_job'))
+
 
 def notify_matching_candidates(job_id):
     """Notify candidates who match the job requirements"""
@@ -1060,6 +1286,7 @@ def admin_users():
                          users=users,
                          search=search,
                          user_type=user_type)
+
 
 @app.route('/admin/skills', methods=['GET', 'POST'])
 def admin_skills():
@@ -1834,6 +2061,16 @@ def employer_view_application(application_id):
     # Calculate match score
     match_score = calculate_job_match_score(candidate.id, job.id)
     
+    # NEW: Get available interviewers for recommendation
+    available_interviewers = User.query.filter_by(
+        user_type='interviewer', is_active=True
+    ).all()
+    
+    # NEW: Get existing interviewer recommendations
+    interviewer_recommendations = InterviewerRecommendation.query.filter_by(
+        application_id=application_id
+    ).all()
+    
     return render_template('employer_view_application.html',
                          application=application,
                          job=job,
@@ -1842,7 +2079,10 @@ def employer_view_application(application_id):
                          candidate_skills=candidate_skills,
                          required_skills=required_skills,
                          status_history=status_history,
-                         match_score=match_score)
+                         match_score=match_score,
+                         available_interviewers=available_interviewers,
+                         interviewer_recommendations=interviewer_recommendations)
+
 
 @app.route('/employer/application/<int:application_id>/update_status', methods=['POST'])
 def update_application_status(application_id):
@@ -1900,6 +2140,239 @@ def update_application_status(application_id):
         flash(f'Error updating status: {str(e)}', 'error')
     
     return redirect(url_for('employer_view_application', application_id=application_id))
+
+@app.route('/employer/download_cv/<int:candidate_id>')
+def download_cv(candidate_id):
+    if 'user_id' not in session or session['user_type'] != 'employer':
+        return redirect(url_for('login'))
+    
+    # Get candidate profile
+    candidate = CandidateProfile.query.get_or_404(candidate_id)
+    
+    # Verify employer has access to this candidate's CV (through applications)
+    employer = User.query.get(session['user_id'])
+    company = employer.company
+    
+    # Check if there's an application from this candidate to any of the employer's jobs
+    application_exists = db.session.query(JobApplication).join(
+        JobPosting, JobApplication.job_id == JobPosting.id
+    ).filter(
+        JobApplication.candidate_id == candidate_id,
+        JobPosting.company_id == company.id
+    ).first()
+    
+    if not application_exists:
+        flash('You do not have permission to download this CV', 'error')
+        return redirect(url_for('employer_applications'))
+    
+    # Check if CV exists
+    if not candidate.cv_content or not candidate.cv_filename:
+        flash('CV not found for this candidate', 'error')
+        return redirect(url_for('employer_applications'))
+    
+    try:
+        # Create BytesIO object from CV content
+        cv_file = BytesIO(candidate.cv_content)
+        
+        # Log the download activity
+        log_activity('candidate_profiles', 'DOWNLOAD_CV', candidate_id,
+                    new_values={'downloaded_by': session['user_id']},
+                    user_id=session['user_id'])
+        
+        # Return the file
+        return send_file(
+            cv_file,
+            mimetype=candidate.cv_mimetype or 'application/pdf',
+            as_attachment=True,
+            download_name=candidate.cv_filename
+        )
+    except Exception as e:
+        flash(f'Error downloading CV: {str(e)}', 'error')
+        return redirect(url_for('employer_applications'))
+
+@app.route('/employer/recommend_interviewer/<int:application_id>', methods=['POST'])
+def recommend_interviewer(application_id):
+    if 'user_id' not in session or session['user_type'] != 'employer':
+        return redirect(url_for('login'))
+    
+    # Verify application belongs to employer
+    application = db.session.query(JobApplication).join(
+        JobPosting, JobApplication.job_id == JobPosting.id
+    ).filter(
+        JobApplication.id == application_id,
+        JobPosting.company_id == User.query.get(session['user_id']).company.id
+    ).first()
+    
+    if not application:
+        flash('Application not found or unauthorized access', 'error')
+        return redirect(url_for('employer_applications'))
+    
+    interviewer_id = request.form.get('interviewer_id')
+    recommendation_notes = request.form.get('recommendation_notes', '')
+    
+    if not interviewer_id:
+        flash('Please select an interviewer', 'error')
+        return redirect(url_for('employer_view_application', application_id=application_id))
+    
+    # Check if recommendation already exists
+    existing_recommendation = InterviewerRecommendation.query.filter_by(
+        application_id=application_id,
+        interviewer_id=interviewer_id,
+        status='pending'
+    ).first()
+    
+    if existing_recommendation:
+        flash('Recommendation already sent to this interviewer', 'warning')
+        return redirect(url_for('employer_view_application', application_id=application_id))
+    
+    try:
+        # Create recommendation (pending)
+        recommendation = InterviewerRecommendation(
+            application_id=application_id,
+            recommended_by=session['user_id'],
+            interviewer_id=int(interviewer_id),
+            recommendation_notes=recommendation_notes,
+            status='pending'
+        )
+        
+        db.session.add(recommendation)
+        db.session.flush()
+        
+        # Log activity
+        log_activity('interviewer_recommendations', 'INSERT', recommendation.id,
+            new_values={
+                'application_id': application_id,
+                'interviewer_id': interviewer_id,
+                'recommended_by': session['user_id']
+            },
+            user_id=session['user_id'])
+
+        # Notify ADMIN/MANAGER (not interviewer)
+        interviewer = User.query.get(interviewer_id)
+        employer = User.query.get(session['user_id'])
+        admins = User.query.filter(User.user_type.in_(['admin', 'manager'])).all()
+        for admin in admins:
+            create_notification(
+                admin.id,
+                'New Interviewer Recommendation',
+                f'Employer {employer.first_name} {employer.last_name} has recommended {interviewer.first_name} {interviewer.last_name} for interviewing candidate {application.candidate.user.first_name} {application.candidate.user.last_name} (Job: {application.job.title}).',
+                'system',
+                url_for('schedule_interview', application_id=application_id)
+            )
+        db.session.commit()
+        flash('Interviewer recommendation submitted to manager for approval and scheduling.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error sending recommendation: {str(e)}', 'error')
+    return redirect(url_for('employer_view_application', application_id=application_id))
+
+
+# REMOVE these two routes: interviewer_recommendations and respond_to_recommendation
+# They are NOT needed in the new workflow, as interviewers no longer see/respond to recommendations.
+
+# If needed, you can also remove the interviewer_recommendations.html template as it is now obsolete.
+
+
+@app.route('/admin/interviewer_recommendations')
+def manage_interviewer_recommendations():
+    if 'user_id' not in session or session['user_type'] not in ['admin', 'manager']:
+        return redirect(url_for('login'))
+    
+    # Get all recommendations with details
+    recommendations = db.session.query(
+        InterviewerRecommendation, JobApplication, JobPosting, Company, CandidateProfile, User
+    ).join(
+        JobApplication, InterviewerRecommendation.application_id == JobApplication.id
+    ).join(
+        JobPosting, JobApplication.job_id == JobPosting.id
+    ).join(
+        Company, JobPosting.company_id == Company.id
+    ).join(
+        CandidateProfile, JobApplication.candidate_id == CandidateProfile.id
+    ).join(
+        User, CandidateProfile.user_id == User.id
+    ).order_by(InterviewerRecommendation.created_at.desc()).all()
+    
+    return render_template('admin/interviewer_recommendations.html', recommendations=recommendations)
+
+
+
+#MCQ Question related routes can be added here as needed
+
+@app.route('/employer/exam/question/<int:question_id>/edit', methods=['GET', 'POST'])
+def edit_exam_question(question_id):
+    if 'user_id' not in session or session['user_type'] != 'employer':
+        return redirect(url_for('login'))
+    
+    question = MCQQuestion.query.get_or_404(question_id)
+    exam = question.exam
+    
+    # Verify this question belongs to this employer
+    user = User.query.get(session['user_id'])
+    company = user.company
+    
+    exam_check = db.session.query(MCQExam).join(JobPosting).filter(
+        MCQExam.id == exam.id,
+        JobPosting.company_id == company.id
+    ).first()
+    
+    if not exam_check:
+        flash('Unauthorized access.', 'error')
+        return redirect(url_for('employer_dashboard'))
+    
+    if request.method == 'POST':
+        question.question_text = request.form.get('question_text')
+        question.option_a = request.form.get('option_a')
+        question.option_b = request.form.get('option_b')
+        question.option_c = request.form.get('option_c')
+        question.option_d = request.form.get('option_d')
+        question.correct_answer = request.form.get('correct_answer')
+        question.points = int(request.form.get('points', 1))
+        question.difficulty_level = request.form.get('difficulty_level', 'Medium')
+        question.category = request.form.get('category')
+        
+        db.session.commit()
+        flash('Question updated successfully!', 'success')
+        return redirect(url_for('manage_exam_questions', exam_id=exam.id))
+    
+    return render_template('edit_exam_question.html', question=question, exam=exam)
+
+@app.route('/employer/exam/question/<int:question_id>/delete', methods=['POST'])
+def delete_exam_question(question_id):
+    if 'user_id' not in session or session['user_type'] != 'employer':
+        return redirect(url_for('login'))
+    
+    question = MCQQuestion.query.get_or_404(question_id)
+    exam = question.exam
+    
+    # Verify this question belongs to this employer
+    user = User.query.get(session['user_id'])
+    company = user.company
+    
+    exam_check = db.session.query(MCQExam).join(JobPosting).filter(
+        MCQExam.id == exam.id,
+        JobPosting.company_id == company.id
+    ).first()
+    
+    if not exam_check:
+        flash('Unauthorized access.', 'error')
+        return redirect(url_for('employer_dashboard'))
+    
+    try:
+        # Update total questions count in exam
+        exam.total_questions = max(0, exam.total_questions - 1)
+        
+        db.session.delete(question)
+        db.session.commit()
+        
+        flash('Question deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting question: {str(e)}', 'error')
+    
+    return redirect(url_for('manage_exam_questions', exam_id=exam.id))
+
+
 
 # Messaging System
 @app.route('/messages')
@@ -2049,9 +2522,6 @@ def notifications():
         week_ago        = week_ago
     )
 
-
-
-
 @app.route('/notifications/mark_read/<int:notification_id>')
 def mark_notification_read(notification_id):
     if 'user_id' not in session:
@@ -2070,7 +2540,836 @@ def mark_notification_read(notification_id):
     
     return redirect(url_for('notifications'))
 
+#New routes
+# Admin/Manager Routes for Interview Management
+
+@app.route('/admin/interviewers', methods=['GET', 'POST'])
+def manage_interviewers():
+    if 'user_id' not in session or session['user_type'] not in ['admin', 'manager']:
+        return redirect(url_for('login'))
+        
+    if request.method == 'POST':
+        # Add new interviewer
+        email = request.form['email']
+        password = request.form['password']
+        first_name = request.form['first_name']
+        last_name = request.form['last_name']
+        phone = request.form.get('phone', '')
+        
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            flash('Email already exists', 'error')
+        else:
+            password_hash = generate_password_hash(password)
+            new_interviewer = User(
+                email=email,
+                password_hash=password_hash,
+                user_type='interviewer',
+                first_name=first_name,
+                last_name=last_name,
+                phone=phone
+            )
+            db.session.add(new_interviewer)
+            db.session.commit()
+            flash('Interviewer added successfully', 'success')
+            
+    interviewers = User.query.filter_by(user_type='interviewer').all()
+    return render_template('admin/manage_interviewers.html', interviewers=interviewers)
+
+@app.route('/admin/schedule_interview/<int:application_id>', methods=['GET', 'POST'])
+def schedule_interview(application_id):
+    if 'user_id' not in session or session['user_type'] not in ['admin', 'manager']:
+        return redirect(url_for('login'))
+
+    application = JobApplication.query.get_or_404(application_id)
+
+    if request.method == 'POST':
+        try:
+            # Parse datetime without any time restrictions
+            scheduled_time_str = request.form['scheduled_time']
+            scheduled_time = datetime.strptime(scheduled_time_str, '%Y-%m-%dT%H:%M')
+
+            # Generate unique room code
+            room_code = f"INT{application_id}{int(datetime.now().timestamp())}"
+
+            # Create interview room with any datetime
+            interview_room = InterviewRoom(
+                room_name=f"Interview - {application.job.title}",
+                room_code=room_code,
+                job_application_id=application_id,
+                scheduled_time=scheduled_time,
+                duration_minutes=int(request.form.get('duration_minutes', 60)),
+                created_by=session['user_id']
+            )
+
+            db.session.add(interview_room)
+            db.session.flush()
+
+            # Add candidate as participant
+            candidate_participant = InterviewParticipant(
+                room_id=interview_room.id,
+                user_id=application.candidate.user_id,
+                role='candidate'
+            )
+            db.session.add(candidate_participant)
+
+            # Add selected interviewers
+            interviewer_ids = request.form.getlist('interviewer_ids[]')
+            for interviewer_id in interviewer_ids:
+                interviewer_participant = InterviewParticipant(
+                    room_id=interview_room.id,
+                    user_id=int(interviewer_id),
+                    role='interviewer'
+                )
+                db.session.add(interviewer_participant)
+
+            # UPDATE RECOMMENDATION STATUS
+            # Mark selected recommendations as 'accepted' and non-selected as 'not_selected'
+            recommendations = InterviewerRecommendation.query.filter_by(
+                application_id=application_id, 
+                status='pending'
+            ).all()
+
+            for rec in recommendations:
+                if str(rec.interviewer_id) in interviewer_ids:
+                    rec.status = 'accepted'
+                else:
+                    rec.status = 'not_selected'
+
+            db.session.commit()
+
+            # Send notifications
+            create_notification(
+                application.candidate.user_id,
+                'Interview Scheduled',
+                f'Your interview for {application.job.title} has been scheduled for {scheduled_time.strftime("%B %d, %Y at %I:%M %p")}',
+                'system',
+                url_for('join_interview', room_code=room_code)
+            )
+
+            for interviewer_id in interviewer_ids:
+                create_notification(
+                    int(interviewer_id),
+                    'Interview Assignment',
+                    f'You have been assigned to interview for {application.job.title} on {scheduled_time.strftime("%B %d, %Y at %I:%M %p")}',
+                    'system',
+                    url_for('join_interview', room_code=room_code)
+                )
+
+            flash('Interview scheduled successfully for 24/7 availability!', 'success')
+            return redirect(url_for('admin_dashboard'))
+
+        except ValueError as e:
+            flash('Invalid date/time format. Please try again.', 'error')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error scheduling interview: {str(e)}', 'error')
+
+    # GET REQUEST: Fetch data for the template
+    interviewers = User.query.filter_by(user_type='interviewer').all()
+    
+    # FETCH RECOMMENDATIONS FOR THIS APPLICATION
+    recommended_interviewers = db.session.query(InterviewerRecommendation).join(
+        User, InterviewerRecommendation.interviewer_id == User.id
+    ).filter(
+        InterviewerRecommendation.application_id == application_id,
+        InterviewerRecommendation.status == 'pending'
+    ).all()
+
+    return render_template('admin/schedule_interview.html',
+                         application=application,
+                         interviewers=interviewers,
+                         recommended_interviewers=recommended_interviewers)  # ADD THIS LINE
+
+
+
+# Edit Interview Route
+@app.route('/admin/edit_interview/<int:interview_id>', methods=['GET', 'POST'])
+def edit_interview(interview_id):
+    if 'user_id' not in session or session['user_type'] not in ['admin', 'manager']:
+        return redirect(url_for('login'))
+
+    interview_room = InterviewRoom.query.get_or_404(interview_id)
+    
+    # Get all participants for this interview
+    participants = db.session.query(InterviewParticipant, User).join(User).filter(
+        InterviewParticipant.room_id == interview_room.id
+    ).all()
+    
+    if request.method == 'POST':
+        try:
+            # Parse the updated datetime
+            scheduled_time_str = request.form['scheduled_time']
+            scheduled_time = datetime.strptime(scheduled_time_str, '%Y-%m-%dT%H:%M')
+            
+            # Store old values for logging
+            old_values = {
+                'scheduled_time': interview_room.scheduled_time.isoformat(),
+                'duration_minutes': interview_room.duration_minutes,
+                'status': interview_room.status
+            }
+            
+            # Update interview room details - NO TIME RESTRICTIONS for 24/7 scheduling
+            interview_room.scheduled_time = scheduled_time
+            interview_room.duration_minutes = int(request.form.get('duration_minutes', 60))
+            interview_room.status = request.form.get('status', 'scheduled')
+            
+            # Handle interviewer updates
+            new_interviewer_ids = request.form.getlist('interviewer_ids[]')
+            
+            # Remove existing interviewers (keep candidate)
+            InterviewParticipant.query.filter_by(
+                room_id=interview_room.id,
+                role='interviewer'
+            ).delete()
+            
+            # Add new interviewers
+            for interviewer_id in new_interviewer_ids:
+                interviewer_participant = InterviewParticipant(
+                    room_id=interview_room.id,
+                    user_id=int(interviewer_id),
+                    role='interviewer'
+                )
+                db.session.add(interviewer_participant)
+            
+            db.session.commit()
+            
+            # Log activity
+            new_values = {
+                'scheduled_time': interview_room.scheduled_time.isoformat(),
+                'duration_minutes': interview_room.duration_minutes,
+                'status': interview_room.status
+            }
+            
+            log_activity('interview_rooms', 'UPDATE', interview_room.id,
+                        old_values=old_values, new_values=new_values, 
+                        user_id=session['user_id'])
+            
+            # Send update notifications to all participants
+            candidate_participant = next((p for p, u in participants if p.role == 'candidate'), None)
+            if candidate_participant:
+                create_notification(
+                    candidate_participant.user_id,
+                    'Interview Updated',
+                    f'Your interview for {interview_room.application.job.title} has been rescheduled to {scheduled_time.strftime("%B %d, %Y at %I:%M %p")}',
+                    'system',
+                    url_for('join_interview', room_code=interview_room.room_code)
+                )
+            
+            # Notify new interviewers
+            for interviewer_id in new_interviewer_ids:
+                create_notification(
+                    int(interviewer_id),
+                    'Interview Updated',
+                    f'Interview assignment updated for {interview_room.application.job.title} - {scheduled_time.strftime("%B %d, %Y at %I:%M %p")}',
+                    'system',
+                    url_for('join_interview', room_code=interview_room.room_code)
+                )
+            
+            flash('Interview updated successfully!', 'success')
+            return redirect(url_for('manage_interviews'))
+            
+        except ValueError as e:
+            flash('Invalid date/time format. Please try again.', 'error')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating interview: {str(e)}', 'error')
+    
+    # Get all interviewers for selection
+    all_interviewers = User.query.filter_by(user_type='interviewer').all()
+    
+    # Get current interviewer IDs
+    current_interviewer_ids = [p.user_id for p, u in participants if p.role == 'interviewer']
+    
+    return render_template('admin/edit_interview.html',
+                          interview_room=interview_room,
+                          participants=participants,
+                          all_interviewers=all_interviewers,
+                          current_interviewer_ids=current_interviewer_ids)
+
+# Delete Interview Route
+@app.route('/admin/delete_interview/<int:interview_id>', methods=['POST'])
+def delete_interview(interview_id):
+    if 'user_id' not in session or session['user_type'] not in ['admin', 'manager']:
+        return redirect(url_for('login'))
+
+    interview_room = InterviewRoom.query.get_or_404(interview_id)
+    
+    # Check if interview can be deleted (only if not completed)
+    if interview_room.status == 'completed':
+        flash('Cannot delete completed interviews. Contact system administrator.', 'error')
+        return redirect(url_for('manage_interviews'))
+    
+    try:
+        # Get participants before deletion for notifications
+        participants = db.session.query(InterviewParticipant, User).join(User).filter(
+            InterviewParticipant.room_id == interview_room.id
+        ).all()
+        
+        job_title = interview_room.application.job.title
+        room_code = interview_room.room_code
+        
+        # Delete related records in correct order
+        # 1. Delete interview feedback (if any)
+        InterviewFeedback.query.filter_by(room_id=interview_room.id).delete()
+        
+        # 2. Delete code sessions (if any)
+        CodeSession.query.filter_by(room_id=interview_room.id).delete()
+        
+        # 3. Delete interview participants
+        InterviewParticipant.query.filter_by(room_id=interview_room.id).delete()
+        
+        # 4. Delete the interview room
+        db.session.delete(interview_room)
+        
+        # Log activity before committing
+        log_activity('interview_rooms', 'DELETE', interview_id,
+                    old_values={'room_code': room_code, 'job_title': job_title},
+                    user_id=session['user_id'])
+        
+        db.session.commit()
+        
+        # Notify all participants about cancellation
+        for participant, user in participants:
+            create_notification(
+                participant.user_id,
+                'Interview Cancelled',
+                f'The interview for {job_title} scheduled in room {room_code} has been cancelled.',
+                'system'
+            )
+        
+        flash('Interview deleted successfully and participants notified.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting interview: {str(e)}', 'error')
+    
+    return redirect(url_for('manage_interviews'))
+
+# Manage Interviews Route (List all interviews)
+@app.route('/admin/manage_interviews')
+def manage_interviews():
+    if 'user_id' not in session or session['user_type'] not in ['admin', 'manager']:
+        return redirect(url_for('login'))
+    
+    # Get all interviews with related data
+    page = request.args.get('page', 1, type=int)
+    status_filter = request.args.get('status', '')
+    
+    query = db.session.query(
+        InterviewRoom, JobApplication, JobPosting, Company, CandidateProfile, User
+    ).join(
+        JobApplication, InterviewRoom.job_application_id == JobApplication.id
+    ).join(
+        JobPosting, JobApplication.job_id == JobPosting.id
+    ).join(
+        Company, JobPosting.company_id == Company.id
+    ).join(
+        CandidateProfile, JobApplication.candidate_id == CandidateProfile.id
+    ).join(
+        User, CandidateProfile.user_id == User.id
+    )
+    
+    if status_filter:
+        query = query.filter(InterviewRoom.status == status_filter)
+    
+    interviews = query.order_by(InterviewRoom.scheduled_time.desc()).paginate(
+        page=page, per_page=20, error_out=False
+    )
+    
+    return render_template('admin/manage_interviews.html',
+                          interviews=interviews,
+                          status_filter=status_filter)
+
+# Cancel Interview Route (soft delete - change status to cancelled)
+@app.route('/admin/cancel_interview/<int:interview_id>', methods=['POST'])
+def cancel_interview(interview_id):
+    if 'user_id' not in session or session['user_type'] not in ['admin', 'manager']:
+        return redirect(url_for('login'))
+
+    interview_room = InterviewRoom.query.get_or_404(interview_id)
+    
+    if interview_room.status == 'completed':
+        flash('Cannot cancel completed interviews.', 'error')
+        return redirect(url_for('manage_interviews'))
+    
+    try:
+        # Get participants for notifications
+        participants = db.session.query(InterviewParticipant, User).join(User).filter(
+            InterviewParticipant.room_id == interview_room.id
+        ).all()
+        
+        # Update status to cancelled
+        old_status = interview_room.status
+        interview_room.status = 'cancelled'
+        
+        # Log activity
+        log_activity('interview_rooms', 'UPDATE', interview_room.id,
+                    old_values={'status': old_status},
+                    new_values={'status': 'cancelled'},
+                    user_id=session['user_id'])
+        
+        db.session.commit()
+        
+        # Notify participants
+        job_title = interview_room.application.job.title
+        for participant, user in participants:
+            create_notification(
+                participant.user_id,
+                'Interview Cancelled',
+                f'The interview for {job_title} has been cancelled. You will be notified if it gets rescheduled.',
+                'system'
+            )
+        
+        flash('Interview cancelled successfully and participants notified.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error cancelling interview: {str(e)}', 'error')
+    
+    return redirect(url_for('manage_interviews'))
+
+
+
+# Interview Room Routes
+@app.route('/interview/<room_code>')
+def join_interview(room_code):
+    """Join interview room - simplified approach"""
+    try:
+        # Get interview room from database using your existing models
+        room = InterviewRoom.query.filter_by(room_code=room_code).first_or_404()
+        
+        # Check if user is authorized to join
+        participant = InterviewParticipant.query.filter_by(
+            room_id=room.id,
+            user_id=session['user_id']
+        ).first()
+        
+        if not participant:
+            flash('You are not authorized to join this interview', 'error')
+            return redirect(url_for('index'))
+        
+        # Get all participants
+        participants = db.session.query(InterviewParticipant, User).join(User).filter(
+            InterviewParticipant.room_id == room.id
+        ).all()
+        
+        return render_template('interview_room.html', 
+                             room=room, 
+                             participants=participants,
+                             current_user_role=participant.role)
+        
+    except Exception as e:
+        flash(f'Error loading interview room: {e}', 'error')
+        return redirect(url_for('index'))
+
+
+@app.route('/api/execute_code', methods=['POST'])
+def api_execute_code():
+    """API endpoint for code execution in interview rooms"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+        
+    data = request.get_json()
+    code = data.get('code', '')
+    language = data.get('language', 'javascript')
+    
+    if not code:
+        return jsonify({'error': 'No code provided'}), 400
+        
+    try:
+        import time
+        start_time = time.time()
+        output = execute_code(code, language)
+        execution_time = time.time() - start_time
+        
+        return jsonify({
+            'output': output,
+            'execution_time': round(execution_time, 3),
+            'language': language
+        })
+    except Exception as e:
+        return jsonify({'error': f'Execution failed: {str(e)}'}), 500
+
+@app.route('/interview/<room_code>/feedback', methods=['GET', 'POST'])
+def interview_feedback(room_code):
+    if 'user_id' not in session or session['user_type'] != 'interviewer':
+        return redirect(url_for('login'))
+        
+    room = InterviewRoom.query.filter_by(room_code=room_code).first_or_404()
+    
+    if request.method == 'POST':
+        feedback = InterviewFeedback(
+            room_id=room.id,
+            interviewer_id=session['user_id'],
+            candidate_id=room.application.candidate.user_id,
+            technical_score=int(request.form.get('technical_score', 0)),
+            communication_score=int(request.form.get('communication_score', 0)),
+            problem_solving_score=int(request.form.get('problem_solving_score', 0)),
+            overall_rating=request.form.get('overall_rating'),
+            feedback_text=request.form.get('feedback_text'),
+            recommendation=request.form.get('recommendation')
+        )
+        db.session.add(feedback)
+        db.session.commit()
+        
+        flash('Feedback submitted successfully', 'success')
+        return redirect(url_for('interviewer_dashboard'))
+        
+    return render_template('interview_feedback.html', room=room)
+
+# Dashboard Routes for New User Types
+@app.route('/interviewer/dashboard')
+def interviewer_dashboard():
+    if 'user_id' not in session or session['user_type'] != 'interviewer':
+        return redirect(url_for('login'))
+    
+    user = User.query.get(session['user_id'])
+    
+    # Get upcoming interviews - FIXED
+    upcoming_interviews = db.session.query(InterviewRoom, JobApplication, JobPosting, Company).join(
+        JobApplication, InterviewRoom.job_application_id == JobApplication.id
+    ).join(
+        JobPosting, JobApplication.job_id == JobPosting.id
+    ).join(
+        Company, JobPosting.company_id == Company.id
+    ).join(
+        InterviewParticipant, InterviewRoom.id == InterviewParticipant.room_id
+    ).filter(
+        InterviewParticipant.user_id == session['user_id'],
+        InterviewRoom.status.in_(['scheduled', 'active']),
+        InterviewRoom.scheduled_time >= datetime.utcnow()  # CHANGED TO utcnow()
+    ).order_by(InterviewRoom.scheduled_time.asc()).all()
+    
+    # Get completed interviews - ALSO FIXED  
+    completed_interviews = db.session.query(InterviewRoom, JobApplication, JobPosting, Company).join(
+        JobApplication, InterviewRoom.job_application_id == JobApplication.id
+    ).join(
+        JobPosting, JobApplication.job_id == JobPosting.id
+    ).join(
+        Company, JobPosting.company_id == Company.id
+    ).join(
+        InterviewParticipant, InterviewRoom.id == InterviewParticipant.room_id
+    ).filter(
+        InterviewParticipant.user_id == session['user_id'],
+        InterviewRoom.status == 'completed'
+    ).order_by(InterviewRoom.ended_at.desc()).limit(5).all()
+    
+    return render_template('interviewer_dashboard.html',
+                         user=user,
+                         upcoming_interviews=upcoming_interviews,
+                         completed_interviews=completed_interviews)
+
+
+@app.route('/manager/dashboard')
+def manager_dashboard():
+    if 'user_id' not in session or session['user_type'] not in ['admin', 'manager']:
+        return redirect(url_for('login'))
+    
+    # Get statistics
+    stats = {
+        'total_interviews': InterviewRoom.query.count(),
+        'scheduled_interviews': InterviewRoom.query.filter_by(status='scheduled').count(),
+        'active_interviews': InterviewRoom.query.filter_by(status='active').count(),
+        'completed_interviews': InterviewRoom.query.filter_by(status='completed').count(),
+        'total_interviewers': User.query.filter_by(user_type='interviewer').count()
+    }
+    
+    # Get recent interviews
+    recent_interviews = db.session.query(InterviewRoom, JobApplication, JobPosting).join(
+        JobApplication, InterviewRoom.job_application_id == JobApplication.id
+    ).join(
+        JobPosting, JobApplication.job_id == JobPosting.id
+    ).order_by(InterviewRoom.created_at.desc()).limit(10).all()
+    
+    # Get applications pending interview scheduling
+    pending_applications = db.session.query(
+        JobApplication, JobPosting, Company, CandidateProfile, User
+    ).join(
+        JobPosting, JobApplication.job_id == JobPosting.id
+    ).join(
+        Company, JobPosting.company_id == Company.id
+    ).join(
+        CandidateProfile, JobApplication.candidate_id == CandidateProfile.id
+    ).join(
+        User, CandidateProfile.user_id == User.id
+    ).filter(
+        JobApplication.application_status.in_(['shortlisted', 'under_review']),
+        ~JobApplication.id.in_(
+            db.session.query(InterviewRoom.job_application_id).filter(
+                InterviewRoom.status.in_(['scheduled', 'active', 'completed'])
+            )
+        )
+    ).order_by(JobApplication.applied_at.desc()).limit(10).all()
+    
+    return render_template('manager_dashboard.html',
+                          stats=stats,
+                          recent_interviews=recent_interviews,
+                          pending_applications=pending_applications)
+
+
+
+
+# Add all the code execution functions from app.py
+import subprocess
+import tempfile
+import uuid
+import requests
+
+# Online execution configuration
+ONLINE_EXECUTION_ENABLED = True
+PISTON_API_URL = "https://emkc.org/api/v2/piston"
+
+PISTON_LANGUAGE_MAP = {
+    'javascript': {'language': 'javascript', 'version': '*'},
+    'python': {'language': 'python', 'version': '*'},
+    'java': {'language': 'java', 'version': '*'},
+    'cpp': {'language': 'cpp', 'version': '*'},
+    'c': {'language': 'c', 'version': '*'},
+    'csharp': {'language': 'csharp', 'version': '*'},
+    'php': {'language': 'php', 'version': '*'},
+    'ruby': {'language': 'ruby', 'version': '*'},
+    'rust': {'language': 'rust', 'version': '*'},
+    'swift': {'language': 'swift', 'version': '*'},
+}
+
+def execute_code_online(code, language):
+    """Execute code using the Piston API"""
+    try:
+        if not ONLINE_EXECUTION_ENABLED:
+            return "Online code execution is disabled."
+            
+        language_info = PISTON_LANGUAGE_MAP.get(language)
+        if not language_info:
+            return f"Language '{language}' is not supported."
+            
+        # Get available runtimes
+        runtimes_response = requests.get(f"{PISTON_API_URL}/runtimes")
+        if runtimes_response.status_code != 200:
+            return "API Error: Failed to get available runtimes"
+            
+        runtimes = runtimes_response.json()
+        
+        # Find the latest version
+        lang_name = language_info['language']
+        version = None
+        for runtime in runtimes:
+            if runtime['language'] == lang_name:
+                version = runtime['version']
+                break
+                
+        if not version:
+            return f"Language '{language}' is not available."
+            
+        # Execute code
+        payload = {
+            "language": lang_name,
+            "version": version,
+            "files": [{"content": code}],
+            "stdin": "",
+            "args": [],
+            "compile_timeout": 10000,
+            "run_timeout": 3000,
+            "compile_memory_limit": -1,
+            "run_memory_limit": -1
+        }
+        
+        response = requests.post(f"{PISTON_API_URL}/execute", json=payload)
+        if response.status_code != 200:
+            return f"API Error: {response.text}"
+            
+        result = response.json()
+        
+        # Check for compilation errors
+        if 'compile' in result and result['compile']['code'] != 0:
+            return f"Compilation Error: {result['compile']['stderr']}"
+            
+        # Get run results
+        run_result = result.get('run', {})
+        stdout = run_result.get('stdout', '')
+        stderr = run_result.get('stderr', '')
+        exit_code = run_result.get('code', 0)
+        
+        if exit_code == 0:
+            return stdout
+        else:
+            return f"Execution Error (code {exit_code}): {stderr}"
+            
+    except Exception as e:
+        return f"Online execution error: {str(e)}"
+
+def execute_code(code, language):
+    """Execute code via online Piston API only."""
+    return execute_code_online(code, language)
+
+# Add similar functions for other languages...
+
+
+#SocketIO for real-time updates
+from flask_socketio import SocketIO, emit, join_room, leave_room
+from collections import defaultdict
+
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+# Track interview participants
+INTERVIEW_PARTICIPANTS = defaultdict(dict)  # room_id -> { sid: user_info }
+SID_TO_INTERVIEW_ROOM = {}  # sid -> room_id
+
+# Update your existing SocketIO events
+@socketio.on('join_interview')
+def on_join_interview(data):
+    room_id = str(data['room'])
+    room_code = data['room_code']
+    user_role = data['role']
+    join_room(room_id)
+    
+    # Get user info from session
+    if 'user_id' in session:
+        user = User.query.get(session['user_id'])
+        user_info = {
+            'username': f"{user.first_name} {user.last_name}",
+            'role': user_role,
+            'user_id': user.id
+        }
+        
+        # Track participant
+        INTERVIEW_PARTICIPANTS[room_id][request.sid] = user_info
+        SID_TO_INTERVIEW_ROOM[request.sid] = room_id
+        
+        # Update participant status in database
+        participant = InterviewParticipant.query.filter_by(
+            room_id=int(room_id),
+            user_id=user.id
+        ).first()
+        if participant:
+            participant.joined_at = datetime.utcnow()
+            participant.is_active = True
+            db.session.commit()
+        
+        # Send existing participants to the joiner
+        others = [
+            {'sid': sid, 'username': info['username'], 'role': info['role']}
+            for sid, info in INTERVIEW_PARTICIPANTS[room_id].items()
+            if sid != request.sid
+        ]
+        emit('participants', {'participants': others}, to=request.sid)
+        
+        # Notify others in room
+        emit('user_joined', {
+            'sid': request.sid,
+            'username': user_info['username'],
+            'role': user_info['role']
+        }, room=room_id, include_self=False)
+
+# Keep your existing offer, answer, ice_candidate, and other events as they are
+
+
+@socketio.on('leave_interview')
+def on_leave_interview(data):
+    room_id = str(data['room'])
+    leave_room(room_id)
+    
+    # Cleanup tracking
+    user_info = INTERVIEW_PARTICIPANTS[room_id].pop(request.sid, None)
+    SID_TO_INTERVIEW_ROOM.pop(request.sid, None)
+    
+    if user_info and 'user_id' in session:
+        # Update participant status in database
+        participant = InterviewParticipant.query.filter_by(
+            room_id=int(room_id), 
+            user_id=user_info['user_id']
+        ).first()
+        if participant:
+            participant.left_at = datetime.utcnow()
+            participant.is_active = False
+            db.session.commit()
+    
+    emit('user_left', {
+        'sid': request.sid, 
+        'username': user_info['username'] if user_info else 'Unknown'
+    }, room=room_id)
+
+@socketio.on('disconnect')
+def on_interview_disconnect():
+    sid = request.sid
+    room_id = SID_TO_INTERVIEW_ROOM.pop(sid, None)
+    
+    if room_id:
+        user_info = INTERVIEW_PARTICIPANTS[room_id].pop(sid, None)
+        
+        if user_info:
+            emit('user_left', {
+                'sid': sid, 
+                'username': user_info['username']
+            }, room=room_id)
+
+# WebRTC Signaling Events
+@socketio.on('offer')
+def on_interview_offer(data):
+    to_sid = data.get('to')
+    if not to_sid:
+        return
+    emit('offer', {
+        'offer': data['offer'],
+        'from': request.sid
+    }, to=to_sid)
+
+@socketio.on('answer')
+def on_interview_answer(data):
+    to_sid = data.get('to')
+    if not to_sid:
+        return
+    emit('answer', {
+        'answer': data['answer'],
+        'from': request.sid
+    }, to=to_sid)
+
+@socketio.on('ice_candidate')
+def on_interview_ice_candidate(data):
+    to_sid = data.get('to')
+    if not to_sid:
+        return
+    emit('ice_candidate', {
+        'candidate': data['candidate'],
+        'from': request.sid
+    }, to=to_sid)
+
+# Code Editor Events
+
+@app.route('/code_editor/<room_code>')
+def code_editor(room_code):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    # Verify user has access to this room
+    room = InterviewRoom.query.filter_by(room_code=room_code).first_or_404()
+    
+    participant = InterviewParticipant.query.filter_by(
+        room_id=room.id,
+        user_id=session['user_id']
+    ).first()
+    
+    if not participant:
+        flash('You are not authorized to access this code editor', 'error')
+        return redirect(url_for('index'))
+    
+    return render_template('code_editor.html', room_code=room_code)
+
+
+@socketio.on('code_change')
+def on_code_change(data):
+    room_id = str(data['room'])
+    emit('code_updated', {
+        'code': data['code'],
+        'language': data.get('language', 'javascript'),
+        'from': request.sid
+    }, room=room_id, include_self=False)
+
+
+# At the end of main.py, replace the current if __name__ == '__main__' section:
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+
+

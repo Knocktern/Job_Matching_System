@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Interviewer Recommendations - JobMatch Pro{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-clipboard-list"></i> Interview Recommendations
+                    </h3>
+                </div>
+                <div class="card-body">
+                    {% if recommendations %}
+                        {% for recommendation, application, job, company, candidate, user in recommendations %}
+                        <div class="card mb-3 {% if recommendation.status == 'pending' %}border-warning{% elif recommendation.status == 'accepted' %}border-success{% else %}border-danger{% endif %}">
+                            <div class="card-header">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <h5 class="mb-0">{{ job.title }} - {{ company.company_name }}</h5>
+                                        <small class="text-muted">
+                                            Candidate: {{ user.first_name }} {{ user.last_name }}
+                                        </small>
+                                    </div>
+                                    <div class="col-md-4 text-right">
+                                        <span class="badge badge-{% if recommendation.status == 'pending' %}warning{% elif recommendation.status == 'accepted' %}success{% else %}danger{% endif %} badge-lg">
+                                            {{ recommendation.status.title() }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <p><strong>Recommended by:</strong> {{ recommendation.recommender.first_name }} {{ recommendation.recommender.last_name }}</p>
+                                        {% if recommendation.recommendation_notes %}
+                                        <p><strong>Notes:</strong> {{ recommendation.recommendation_notes }}</p>
+                                        {% endif %}
+                                        <p><strong>Recommended on:</strong> {{ recommendation.created_at.strftime('%B %d, %Y at %H:%M') }}</p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        {% if recommendation.status == 'pending' %}
+                                        <div class="d-flex flex-column">
+                                            <button type="button" class="btn btn-success btn-sm mb-2" 
+                                                    data-toggle="modal" 
+                                                    data-target="#respondModal{{ recommendation.id }}"
+                                                    data-response="accepted">
+                                                <i class="fas fa-check"></i> Accept
+                                            </button>
+                                            <button type="button" class="btn btn-danger btn-sm" 
+                                                    data-toggle="modal" 
+                                                    data-target="#respondModal{{ recommendation.id }}"
+                                                    data-response="rejected">
+                                                <i class="fas fa-times"></i> Decline
+                                            </button>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Response Modal -->
+                        {% if recommendation.status == 'pending' %}
+                        <div class="modal fade" id="respondModal{{ recommendation.id }}" tabindex="-1" role="dialog">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Respond to Recommendation</h5>
+                                        <button type="button" class="close" data-dismiss="modal">
+                                            <span>&times;</span>
+                                        </button>
+                                    </div>
+                                    <form method="POST" action="{{ url_for('respond_to_recommendation', recommendation_id=recommendation.id) }}">
+                                        <div class="modal-body">
+                                            <input type="hidden" id="response{{ recommendation.id }}" name="response" value="">
+                                            
+                                            <div class="alert alert-info">
+                                                <strong>Job:</strong> {{ job.title }}<br>
+                                                <strong>Company:</strong> {{ company.company_name }}<br>
+                                                <strong>Candidate:</strong> {{ user.first_name }} {{ user.last_name }}
+                                            </div>
+                                            
+                                            <div class="form-group">
+                                                <label for="response_notes{{ recommendation.id }}">Response Notes (Optional)</label>
+                                                <textarea class="form-control" id="response_notes{{ recommendation.id }}" 
+                                                          name="response_notes" rows="3" 
+                                                          placeholder="Any additional comments..."></textarea>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary" id="submitBtn{{ recommendation.id }}">
+                                                Confirm Response
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
+                            <h4>No Recommendations Yet</h4>
+                            <p class="text-muted">You haven't received any interview recommendations yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    $('[data-toggle="modal"]').on('click', function() {
+        var response = $(this).data('response');
+        var modalId = $(this).data('target');
+        var recommendationId = modalId.replace('#respondModal', '');
+        
+        $('#response' + recommendationId).val(response);
+        
+        var submitBtn = $('#submitBtn' + recommendationId);
+        if (response === 'accepted') {
+            submitBtn.removeClass('btn-danger').addClass('btn-success').text('Accept Recommendation');
+        } else {
+            submitBtn.removeClass('btn-success').addClass('btn-danger').text('Decline Recommendation');
+        }
+    });
+});
+</script>
+{% endblock %}
